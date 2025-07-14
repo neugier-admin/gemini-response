@@ -1,22 +1,16 @@
-// 等待整個 HTML 文件載入完成後才執行
 document.addEventListener('DOMContentLoaded', () => {
     
-    // --- 主要的初始化函式 ---
     async function initializeApp() {
-        // 使用 fetch API 讀取 JSON 檔案
-        // await 會暫停函式的執行，直到 Promise 被解析 (即檔案讀取完成)
-        const response = await fetch('content.json');
-        const markdownPages = await response.json();
+        const manifestResponse = await fetch('manifest.json');
+        const pagesManifest = await manifestResponse.json();
 
-        // 獲取所有需要的 DOM 元素
         const tabsContainer = document.getElementById('tabs-container');
         const htmlOutput = document.getElementById('html-output');
         const lineHeightControls = document.getElementById('line-height-controls');
         
         let currentPageIndex = 0;
-        let currentLeadingClass = 'leading-relaxed'; // 預設行距
+        let currentLeadingClass = 'leading-relaxed';
 
-        // 初始化 Showdown 轉換器
         const converter = new showdown.Converter({
             tables: true,
             strikethrough: true,
@@ -24,33 +18,38 @@ document.addEventListener('DOMContentLoaded', () => {
             simpleLineBreaks: true,
         });
 
-        // --- 所有功能函式 ---
+        async function renderContent(index) {
+            const pageInfo = pagesManifest[index];
+            if (!pageInfo) return;
 
-        // 渲染內容的函式
-        function renderContent(index) {
-            const page = markdownPages[index];
-            if (!page) return;
+            try {
+                const contentResponse = await fetch(pageInfo.file);
+                if (!contentResponse.ok) {
+                    throw new Error(`HTTP error! status: ${contentResponse.status}`);
+                }
+                const markdownContent = await contentResponse.text();
+                
+                const html = converter.makeHtml(markdownContent);
+                htmlOutput.innerHTML = html;
 
-            const html = converter.makeHtml(page.content.trim());
-            htmlOutput.innerHTML = html;
-
-            // 應用當前選定的行距
-            htmlOutput.classList.remove('leading-normal', 'leading-relaxed', 'leading-loose');
-            htmlOutput.classList.add(currentLeadingClass);
-            
-            // 添加動畫效果
-            htmlOutput.classList.remove('content-fade-in');
-            void htmlOutput.offsetWidth; // 觸發重繪
-            htmlOutput.classList.add('content-fade-in');
+                htmlOutput.classList.remove('leading-normal', 'leading-relaxed', 'leading-loose');
+                htmlOutput.classList.add(currentLeadingClass);
+                
+                htmlOutput.classList.remove('content-fade-in');
+                void htmlOutput.offsetWidth;
+                htmlOutput.classList.add('content-fade-in');
+            } catch (error) {
+                htmlOutput.innerHTML = `<p class="text-red-400">無法載入內容檔案：${pageInfo.file}</p><p class="text-gray-400 text-sm">請檢查檔案路徑是否正確，以及檔案是否已上傳至伺服器。</p>`;
+                console.error('Error fetching markdown:', error);
+            }
         }
 
-        // 渲染分頁按鈕的函式
         function renderTabs() {
-            tabsContainer.innerHTML = ''; // 清空現有按鈕
-            markdownPages.forEach((page, index) => {
+            tabsContainer.innerHTML = '';
+            pagesManifest.forEach((pageInfo, index) => {
                 const isActive = index === currentPageIndex;
                 const button = document.createElement('button');
-                button.textContent = page.title;
+                button.textContent = pageInfo.title;
                 
                 button.className = `py-3 px-4 text-sm font-medium border-b-2 transition-colors duration-200 ease-in-out focus:outline-none ${
                     isActive 
@@ -68,7 +67,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
         
-        // 更新行距按鈕狀態的函式
         function updateLhButtonStates() {
             lineHeightControls.querySelectorAll('.lh-btn').forEach(btn => {
                 if (btn.dataset.leading === currentLeadingClass) {
@@ -79,7 +77,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
         
-        // 為行距按鈕綁定事件
         lineHeightControls.querySelectorAll('.lh-btn').forEach(button => {
             button.addEventListener('click', () => {
                 htmlOutput.classList.remove('leading-normal', 'leading-relaxed', 'leading-loose');
@@ -89,12 +86,10 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
-        // --- 程式進入點 ---
-        updateLhButtonStates(); // 初始化行距按鈕狀態
+        updateLhButtonStates();
         renderTabs();
         renderContent(currentPageIndex);
     }
 
-    // 呼叫初始化函式
     initializeApp();
 });
