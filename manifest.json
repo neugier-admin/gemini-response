@@ -9,6 +9,7 @@
   },
   {
     "title": "Tenable",
-    "file": "content/tenable.md"
+    "file": "content/tenable.md",
+    "codeFile": "content/tenable_script.txt"
   }
 ]
