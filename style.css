@@ -1,7 +1,6 @@
 /* 自訂樣式 */
 body {
     font-family: 'Inter', 'Noto Sans TC', sans-serif;
-    /* 添加背景漸變 */
     background-color: #111827; /* bg-gray-900 */
     background-image: radial-gradient(at 47% 33%, hsl(218.00, 45%, 15%) 0, transparent 59%), 
                       radial-gradient(at 82% 65%, hsl(277.00, 39%, 18%) 0, transparent 55%);
@@ -28,42 +27,33 @@ body {
 }
 
 /* 優化 prose 樣式 (Markdown 輸出) */
-.prose {
-    color: #d1d5db; /* 預設 text-gray-300 */
-}
-/* 移除 prose 預設的 line-height，由 JS 控制 */
-.prose, .prose p {
-    line-height: inherit;
-}
-
-/* --- 新增：為各級標題設定不同間距 --- */
+.prose { color: #d1d5db; }
+.prose, .prose p { line-height: inherit; }
 .prose h1 {
     color: #f9fafb; 
     border-bottom: 1px solid #374151; 
     padding-bottom: 0.75rem;
-    margin-top: 1.5em; /* 增加上方間距 */
-    margin-bottom: 1em; /* 增加下方間距 */
+    margin-top: 1.5em;
+    margin-bottom: 1em;
 }
 .prose h2 {
     color: #f9fafb; 
     border-bottom: 1px solid #374151; 
     padding-bottom: 0.5rem;
-    margin-top: 2em; /* 增加上方間距 */
-    margin-bottom: 0.75em; /* 增加下方間距 */
+    margin-top: 2em;
+    margin-bottom: 0.75em;
 }
 .prose h3 {
     color: #f9fafb; 
-    /* H3 不加底線，視覺上更輕量 */
     padding-bottom: 0.25rem;
-    margin-top: 1.8em; /* 增加上方間距 */
-    margin-bottom: 0.5em; /* 增加下方間距 */
+    margin-top: 1.8em;
+    margin-bottom: 0.5em;
 }
 .prose h4, .prose h5, .prose h6 { 
     color: #f3f4f6; 
     margin-top: 1.5em;
     margin-bottom: 0.5em;
 }
-
 .prose a { color: #93c5fd; transition: color 0.2s ease-in-out; }
 .prose a:hover { color: #60a5fa; }
 .prose strong { color: #f9fafb; }
@@ -86,9 +76,9 @@ body {
 /* 行距按鈕樣式 */
 .lh-btn:not(.active-lh) {
     background-color: transparent;
-    color: #9ca3af; /* text-gray-400 */
+    color: #9ca3af;
 }
 .lh-btn:not(.active-lh):hover {
-    background-color: #374151; /* bg-gray-700 */
-    color: #e5e7eb; /* text-gray-200 */
+    background-color: #374151;
+    color: #e5e7eb;
 }
