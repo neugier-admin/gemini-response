@@ -1,0 +1,103 @@
+# =============================================================================
+# Wazuh Windows Agent Installation Script
+#
+# Description:
+# This script automates the installation and configuration of the Wazuh
+# agent on a Windows system. It sets the Wazuh Manager IP address and
+# starts the agent service.
+#
+# Instructions:
+# 1. Place this script in the same directory as the Wazuh agent MSI installer.
+# 2. Update the variables in the "Configuration" section below.
+# 3. Run this script with Administrator privileges.
+#
+# Example:
+#    Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process
+#    .\install-wazuh.ps1
+#
+# =============================================================================
+
+# --- Configuration ---
+# Set the IP address of your Wazuh Manager server.
+$wazuhManagerIP = "192.168.1.100"
+
+# Set the exact file name of the Wazuh agent MSI installer.
+# The script assumes the MSI is in the same directory as this script.
+$msiFileName = "wazuh-agent-4.7.4-1.msi"
+# --- End of Configuration ---
+
+
+# --- Script Body ---
+
+# Get the directory where the script is located.
+$scriptPath = $PSScriptRoot
+
+# Construct the full path to the MSI file.
+$msiPath = Join-Path $scriptPath $msiFileName
+
+# 1. Check for Administrator Privileges
+Write-Host "Checking for Administrator privileges..."
+if (-NOT ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+    Write-Warning "This script must be run with Administrator privileges. Please re-open PowerShell as an Administrator and try again."
+    # Pause to allow the user to read the message before the window closes.
+    Read-Host "Press Enter to exit."
+    exit 1
+}
+Write-Host "Administrator privileges confirmed." -ForegroundColor Green
+
+# 2. Check if the MSI file exists
+Write-Host "Verifying MSI installer path: $msiPath"
+if (-NOT (Test-Path $msiPath)) {
+    Write-Error "Wazuh agent MSI file not found at '$msiPath'. Please ensure the file name is correct and it's in the same directory as the script."
+    Read-Host "Press Enter to exit."
+    exit 1
+}
+Write-Host "MSI installer found." -ForegroundColor Green
+
+# 3. Install the Wazuh Agent
+Write-Host "Starting Wazuh agent installation. This may take a few moments..."
+Write-Host "Manager IP will be set to: $wazuhManagerIP"
+
+# Prepare arguments for msiexec. Using /q for a quiet (unattended) installation.
+# WAZUH_MANAGER and WAZUH_REGISTRATION_SERVER are set to the manager's IP.
+$msiArgs = @(
+    "/i",
+    "`"$msiPath`"",
+    "/q",
+    "WAZUH_MANAGER=`"$wazuhManagerIP`"",
+    "WAZUH_REGISTRATION_SERVER=`"$wazuhManagerIP`""
+)
+
+try {
+    # Start the installer process and wait for it to complete.
+    $process = Start-Process msiexec -ArgumentList $msiArgs -Wait -PassThru -ErrorAction Stop
+
+    if ($process.ExitCode -eq 0) {
+        Write-Host "Wazuh agent installed successfully." -ForegroundColor Green
+    } else {
+        # Common exit codes: 1603 (Fatal error), 3010 (Reboot required)
+        Write-Error "MSI installer exited with code: $($process.ExitCode). Installation may have failed."
+        Read-Host "Press Enter to exit."
+        exit 1
+    }
+}
+catch {
+    Write-Error "An error occurred during the installation process: $_"
+    Read-Host "Press Enter to exit."
+    exit 1
+}
+
+# 4. Start the Wazuh Agent Service
+Write-Host "Starting the Wazuh service..."
+try {
+    Start-Service -Name "wazuh" -ErrorAction Stop
+    Write-Host "Wazuh service started successfully." -ForegroundColor Green
+}
+catch {
+    Write-Error "Failed to start the Wazuh service. Please start it manually from services.msc. Error: $_"
+    Read-Host "Press Enter to exit."
+    exit 1
+}
+
+Write-Host "---"
+Write-Host "Installation and configuration complete." -ForegroundColor Cyan
