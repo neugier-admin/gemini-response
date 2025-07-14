@@ -1,0 +1,94 @@
+/* 自訂樣式 */
+body {
+    font-family: 'Inter', 'Noto Sans TC', sans-serif;
+    /* 添加背景漸變 */
+    background-color: #111827; /* bg-gray-900 */
+    background-image: radial-gradient(at 47% 33%, hsl(218.00, 45%, 15%) 0, transparent 59%), 
+                      radial-gradient(at 82% 65%, hsl(277.00, 39%, 18%) 0, transparent 55%);
+}
+
+/* 內容容器動畫 */
+.content-container {
+    animation: fadeIn 0.8s ease-out forwards;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* 內容切換動畫 */
+.content-fade-in {
+    animation: contentFade 0.5s ease-in-out forwards;
+}
+
+@keyframes contentFade {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* 優化 prose 樣式 (Markdown 輸出) */
+.prose {
+    color: #d1d5db; /* 預設 text-gray-300 */
+}
+/* 移除 prose 預設的 line-height，由 JS 控制 */
+.prose, .prose p {
+    line-height: inherit;
+}
+
+/* --- 新增：為各級標題設定不同間距 --- */
+.prose h1 {
+    color: #f9fafb; 
+    border-bottom: 1px solid #374151; 
+    padding-bottom: 0.75rem;
+    margin-top: 1.5em; /* 增加上方間距 */
+    margin-bottom: 1em; /* 增加下方間距 */
+}
+.prose h2 {
+    color: #f9fafb; 
+    border-bottom: 1px solid #374151; 
+    padding-bottom: 0.5rem;
+    margin-top: 2em; /* 增加上方間距 */
+    margin-bottom: 0.75em; /* 增加下方間距 */
+}
+.prose h3 {
+    color: #f9fafb; 
+    /* H3 不加底線，視覺上更輕量 */
+    padding-bottom: 0.25rem;
+    margin-top: 1.8em; /* 增加上方間距 */
+    margin-bottom: 0.5em; /* 增加下方間距 */
+}
+.prose h4, .prose h5, .prose h6 { 
+    color: #f3f4f6; 
+    margin-top: 1.5em;
+    margin-bottom: 0.5em;
+}
+
+.prose a { color: #93c5fd; transition: color 0.2s ease-in-out; }
+.prose a:hover { color: #60a5fa; }
+.prose strong { color: #f9fafb; }
+.prose blockquote {
+    border-left-color: #3b82f6; color: #d1d5db; background-color: rgba(30, 41, 59, 0.5); padding: 1rem;
+    margin-top: 1.5em;
+    margin-bottom: 1.5em;
+}
+.prose code {
+    color: #fcd34d; background-color: #374151; padding: 0.2em 0.4em; border-radius: 6px; font-size: 0.9em;
+}
+.prose pre {
+    background-color: #0f172a; color: #e2e8f0; border: 1px solid #334155; border-radius: 0.5rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    margin-top: 1.5em;
+    margin-bottom: 1.5em;
+}
+.prose pre code { background-color: transparent; padding: 0; font-size: 1em; }
+.prose ul > li::before { background-color: #60a5fa; }
+
+/* 行距按鈕樣式 */
+.lh-btn:not(.active-lh) {
+    background-color: transparent;
+    color: #9ca3af; /* text-gray-400 */
+}
+.lh-btn:not(.active-lh):hover {
+    background-color: #374151; /* bg-gray-700 */
+    color: #e5e7eb; /* text-gray-200 */
+}
