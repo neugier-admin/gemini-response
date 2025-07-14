@@ -82,3 +82,26 @@ body {
     background-color: #374151;
     color: #e5e7eb;
 }
+
+/* 新增：程式碼檢視按鈕樣式 */
+.code-btn {
+    background-color: #1e3a8a; /* bg-blue-900 */
+    color: #dbeafe; /* text-blue-200 */
+    padding: 0.25rem 0.75rem;
+    border-radius: 6px;
+    font-size: 0.75rem; /* text-xs */
+    font-weight: 500;
+    transition: background-color 0.2s ease-in-out;
+    white-space: nowrap;
+}
+.code-btn:hover {
+    background-color: #1e40af; /* bg-blue-800 */
+}
+
+/* 新增：Modal 關閉按鈕 */
+#modal-close-btn {
+    transition: transform 0.2s ease-in-out;
+}
+#modal-close-btn:hover {
+    transform: scale(1.2);
+}
