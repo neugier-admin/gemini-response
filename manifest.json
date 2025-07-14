@@ -11,5 +11,10 @@
     "title": "Tenable",
     "file": "content/tenable.md",
     "codeFile": "content/tenable_script.txt"
+  },
+  {
+    "title": "Wazuh",
+    "file": "content/WazuhInstallationGuide.md",
+    "codeFile": "content/WazuhAgentInstallationPowerShellScript.txt"
   }
 ]
