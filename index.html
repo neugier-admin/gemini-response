@@ -5,13 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Markdown 預覽器</title>
 
+    <!-- 引入第三方函式庫 -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/showdown/2.1.0/showdown.min.js"></script>
     
+    <!-- 引入 Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
     
+    <!-- 連結到您自己的 CSS 檔案 -->
     <link rel="stylesheet" href="style.css">
 </head>
 <body class="text-gray-200">
@@ -22,11 +25,16 @@
             <p class="text-gray-400 mt-3 max-w-xl mx-auto">一個由 Markdown 渲染的靜態頁面，現在支援分頁與行距切換。</p>
         </header>
 
+        <!-- 卡片式內容容器 -->
         <div class="max-w-4xl mx-auto content-container">
             <div class="bg-gray-800/70 backdrop-blur-sm border border-gray-700/60 rounded-xl shadow-2xl shadow-black/20">
+                <!-- 頂部控制欄：包含分頁和行距控制 -->
                 <div class="flex justify-between items-center border-b border-gray-700/60 pl-4 pr-2 pt-2">
+                    <!-- 分頁按鈕容器 -->
                     <div id="tabs-container" class="flex">
-                        </div>
+                        <!-- Tab 按鈕會由 JS 動態生成 -->
+                    </div>
+                    <!-- 行距控制按鈕 -->
                     <div id="line-height-controls" class="flex items-center space-x-1 pb-2">
                         <span class="text-xs text-gray-500 mr-2">行距</span>
                         <button data-leading="leading-normal" class="lh-btn text-xs px-2 py-1 rounded transition-colors">緊湊</button>
@@ -35,13 +43,16 @@
                     </div>
                 </div>
                 
+                <!-- 內容顯示區 -->
                 <div id="html-output" class="w-full p-6 md:p-10 prose prose-invert max-w-none">
-                    </div>
+                    <!-- 內容會由 JS 動態載入 -->
+                </div>
             </div>
         </div>
     </div>
 
-    <script src="script.js" defer></script>
+    <!-- 連結到您自己的 JavaScript 檔案 -->
+    <script src="script.js"></script>
 
 </body>
 </html>
