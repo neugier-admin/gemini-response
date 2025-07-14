@@ -28,18 +28,23 @@
         <!-- 卡片式內容容器 -->
         <div class="max-w-4xl mx-auto content-container">
             <div class="bg-gray-800/70 backdrop-blur-sm border border-gray-700/60 rounded-xl shadow-2xl shadow-black/20">
-                <!-- 頂部控制欄：包含分頁和行距控制 -->
+                <!-- 頂部控制欄 -->
                 <div class="flex justify-between items-center border-b border-gray-700/60 pl-4 pr-2 pt-2">
                     <!-- 分頁按鈕容器 -->
                     <div id="tabs-container" class="flex">
                         <!-- Tab 按鈕會由 JS 動態生成 -->
                     </div>
-                    <!-- 行距控制按鈕 -->
-                    <div id="line-height-controls" class="flex items-center space-x-1 pb-2">
-                        <span class="text-xs text-gray-500 mr-2">行距</span>
-                        <button data-leading="leading-normal" class="lh-btn text-xs px-2 py-1 rounded transition-colors">緊湊</button>
-                        <button data-leading="leading-relaxed" class="lh-btn text-xs px-2 py-1 rounded transition-colors">預設</button>
-                        <button data-leading="leading-loose" class="lh-btn text-xs px-2 py-1 rounded transition-colors">寬鬆</button>
+                    <!-- 右側控制項 -->
+                    <div class="flex items-center space-x-4">
+                        <!-- 程式碼按鈕容器 -->
+                        <div id="code-button-container" class="pb-2"></div>
+                        <!-- 行距控制按鈕 -->
+                        <div id="line-height-controls" class="flex items-center space-x-1 pb-2">
+                            <span class="text-xs text-gray-500 mr-2">行距</span>
+                            <button data-leading="leading-normal" class="lh-btn text-xs px-2 py-1 rounded transition-colors">緊湊</button>
+                            <button data-leading="leading-relaxed" class="lh-btn text-xs px-2 py-1 rounded transition-colors">預設</button>
+                            <button data-leading="leading-loose" class="lh-btn text-xs px-2 py-1 rounded transition-colors">寬鬆</button>
+                        </div>
                     </div>
                 </div>
                 
@@ -47,6 +52,19 @@
                 <div id="html-output" class="w-full p-6 md:p-10 prose prose-invert max-w-none">
                     <!-- 內容會由 JS 動態載入 -->
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 程式碼檢視 Modal -->
+    <div id="code-modal" class="fixed inset-0 bg-black bg-opacity-75 backdrop-blur-sm flex items-center justify-center p-4 hidden z-50">
+        <div class="bg-gray-900 border border-gray-700 rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+            <div class="flex justify-between items-center p-4 border-b border-gray-700 flex-shrink-0">
+                <h3 id="modal-title" class="text-lg font-semibold text-white">檢視程式碼</h3>
+                <button id="modal-close-btn" class="text-gray-400 hover:text-white text-2xl font-bold leading-none">&times;</button>
+            </div>
+            <div class="p-6 overflow-y-auto bg-black/20">
+                <pre><code id="modal-code-content" class="text-sm language-python"></code></pre>
             </div>
         </div>
     </div>
