@@ -1,0 +1,72 @@
+################################################################################
+# rsyslog configuration to monitor PostgreSQL log files and forward them.
+################################################################################
+
+# --- 1. Load the 'imfile' Module ---
+# This module is required to monitor log files. In modern rsyslog versions,
+# it's often loaded automatically when the first 'input()' is declared,
+# but explicitly loading it is good practice.
+module(load="imfile")
+
+
+# --- 2. Define the File to Monitor ---
+# This section defines an input source for the PostgreSQL log files.
+input(type="imfile"
+      # Wildcard (*) is used to monitor all log files matching the pattern,
+      # which handles daily log rotation automatically.
+      File="/opt/wdts/pqsql/15/data/pg_log/postgresql-*.log"
+
+      # Assign a static tag to every message read from these files.
+      # This tag is crucial for filtering and routing the logs later.
+      Tag="postgres:"
+
+      # Assign a default severity level for these log messages.
+      Severity="info"
+
+      # Assign a syslog facility. 'local0' through 'local7' are
+      # traditionally reserved for custom application logs.
+      Facility="local0"
+)
+
+
+# --- 3. Define the Forwarding Rule ---
+# This rule filters the messages based on the tag defined above and
+# forwards them to a remote SIEM server.
+
+# We use '$syslogtag' for filtering as it directly corresponds to the 'Tag'
+# parameter set in the input(). This is more reliable than '$programname'.
+if $syslogtag == 'postgres:' then {
+    action(type="omfwd"
+           # The hostname or IP address of your primary SIEM server.
+           Target="your-primary-siem.example.com"
+
+           # The port your SIEM is listening on for syslog messages.
+           Port="514"
+
+           # Use 'tcp' for reliable, ordered delivery, which is highly
+           # recommended for sending logs to a SIEM.
+           Protocol="tcp"
+          )
+}
+
+
+# --- Optional: Forward to a Second Destination (e.g., for backup) ---
+# To send the same logs to another server, simply add another rule block.
+#
+# if $syslogtag == 'postgres:' then {
+#     action(type="omfwd"
+#            Target="your-backup-logger.internal"
+#            Port="1514"
+#            Protocol="tcp"
+#           )
+# }
+
+
+# --- Optional: Stop Processing Here ---
+# If you don't want these PostgreSQL logs to be processed by any subsequent
+# rules in other configuration files, you can add 'stop' here.
+#
+# if $syslogtag == 'postgres:' then {
+#     action(...)
+#     stop
+# }
