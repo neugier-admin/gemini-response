@@ -21,5 +21,9 @@
     "title": "Postgres",
     "file": "content/postgresLogForward.md",
     "codeFile": "content/60-postgres.txt"
+  },
+  {
+    "title": "EMail",
+    "file": "content/mail.md"
   }
 ]
