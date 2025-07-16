@@ -1,4 +1,6 @@
-Of course, here is a draft for the email. I have structured the technical requirements in a clear, easy-to-read format for the technical team.
+Understood. I have updated the email draft to include the network port requirements for the Wazuh server.
+
+Here is the revised version:
 
 ***
 
@@ -38,7 +40,18 @@ Could you please assist us by setting up the following VMs with the specificatio
     * **RAM:** 4 GB
     * **Storage:** 50 GB
 
-Once the VMs are provisioned, please let us know so we can provide the OVA file for the main Wazuh server and begin our testing.
+---
+
+**Network Requirements:**
+
+For **VM 1 (Wazuh Server)**, please ensure the following inbound ports are allowed through the firewall:
+* **TCP/UDP 1514:** For Wazuh agent registration and communication.
+* **TCP 1515:** For the agent enrollment process.
+* **UDP 514:** For receiving syslog data.
+
+---
+
+Once the VMs are provisioned with the specified network access, please let us know. We can then provide the OVA file for the Wazuh server and begin our testing.
 
 Thank you for your support. Please let me know if you have any questions.
 
