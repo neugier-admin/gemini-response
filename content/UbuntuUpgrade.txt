@@ -1,0 +1,212 @@
+#!/bin/bash
+
+# =============================================================================
+# 腳本：設定代理、安裝 CA 憑證並執行系統版本升級
+#
+# 作者：Gemini
+# 版本：1.0
+#
+# 使用說明：
+# 1. 【非常重要】請務必編輯下方的 `CA_CERT_CONTENT` 變數，
+#    將您的 CA 憑證完整內容（包含 -----BEGIN...----- 和 -----END...-----）
+#    貼在引號之間。
+#
+# 2. 保存此腳本，例如命名為 `upgrade.sh`。
+#
+# 3. 賦予執行權限：
+#    chmod +x upgrade.sh
+#
+# 4. 使用 sudo 執行此腳本：
+#    sudo ./upgrade.sh
+#
+# 5. `do-release-upgrade` 過程需要使用者互動，請依照提示操作。
+# =============================================================================
+
+# --- 設定區 ---
+
+# 如果任何指令失敗，立即停止執行
+set -e
+
+# 代理伺服器地址與埠號
+PROXY_URL="http://10.33.35.10:8080"
+
+# CA 憑證檔案名稱
+CA_CERT_FILENAME="custom-corp-ca.crt"
+
+# CA 憑證安裝路徑
+CA_CERT_PATH="/usr/local/share/ca-certificates/${CA_CERT_FILENAME}"
+
+#
+# ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼【 請在這裡編輯 】▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
+#
+# 將您的 CA 憑證完整內容貼到下方的引號之間。
+#
+CA_CERT_CONTENT="""
+-----BEGIN CERTIFICATE-----
+*** 在這裡貼上您的 CA 憑證內容 ***
+*** PASTE YOUR CA CERTIFICATE CONTENT HERE ***
+*** 例如：MII... (很長的一串字元) ***
+-----END CERTIFICATE-----
+"""
+#
+# ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲【 編輯完畢 】▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+#
+
+# --- 函式定義 ---
+
+# 格式化輸出日誌
+log() {
+    echo ""
+    echo "=================================================="
+    echo " $1"
+    echo "=================================================="
+    echo ""
+}
+
+# 檢查是否以 root 身份執行
+check_root() {
+    if [ "$(id -u)" -ne 0 ]; then
+        echo "錯誤：此腳本必須以 root 權限運行。請使用 'sudo ./upgrade.sh'。" >&2
+        exit 1
+    fi
+}
+
+# 檢查使用者是否已貼上憑證
+check_ca_content() {
+    if [[ "$CA_CERT_CONTENT" == *"PASTE YOUR CA CERTIFICATE CONTENT HERE"* ]]; then
+        log "錯誤：請先編輯此腳本檔案"
+        echo "請將您的 CA 憑證內容貼到 'CA_CERT_CONTENT' 變數中後再執行。" >&2
+        exit 1
+    fi
+}
+
+# 步驟 1: 設定代理
+setup_proxy() {
+    log "步驟 1: 設定系統與 APT 代理 (Proxy)"
+
+    # 為 APT 設定代理
+    echo "正在為 APT 建立代理設定檔..."
+    cat <<EOF > /etc/apt/apt.conf.d/99proxy
+Acquire::http::Proxy "${PROXY_URL}";
+Acquire::https::Proxy "${PROXY_URL}";
+Acquire::ftp::Proxy "${PROXY_URL}";
+EOF
+    echo "APT 代理設定完成：/etc/apt/apt.conf.d/99proxy"
+
+    # 設定全域環境變數代理
+    echo "正在將代理設定新增至 /etc/environment..."
+    # 避免重複寫入
+    grep -qxF "http_proxy=\"${PROXY_URL}\"" /etc/environment || echo "http_proxy=\"${PROXY_URL}\"" >> /etc/environment
+    grep -qxF "https_proxy=\"${PROXY_URL}\"" /etc/environment || echo "https_proxy=\"${PROXY_URL}\"" >> /etc/environment
+    grep -qxF "ftp_proxy=\"${PROXY_URL}\"" /etc/environment || echo "ftp_proxy=\"${PROXY_URL}\"" >> /etc/environment
+    grep -qxF "no_proxy=\"localhost,127.0.0.1,::1\"" /etc/environment || echo "no_proxy=\"localhost,127.0.0.1,::1\"" >> /etc/environment
+    # 為了相容性，也加入大寫版本
+    grep -qxF "HTTP_PROXY=\"${PROXY_URL}\"" /etc/environment || echo "HTTP_PROXY=\"${PROXY_URL}\"" >> /etc/environment
+    grep -qxF "HTTPS_PROXY=\"${PROXY_URL}\"" /etc/environment || echo "HTTPS_PROXY=\"${PROXY_URL}\"" >> /etc/environment
+    grep -qxF "FTP_PROXY=\"${PROXY_URL}\"" /etc/environment || echo "FTP_PROXY=\"${PROXY_URL}\"" >> /etc/environment
+    grep -qxF "NO_PROXY=\"localhost,127.0.0.1,::1\"" /etc/environment || echo "NO_PROXY=\"localhost,127.0.0.1,::1\"" >> /etc/environment
+
+    echo "系統代理設定完成：/etc/environment"
+    echo "注意：此設定將在下次登入時對整個系統生效。"
+}
+
+# 步驟 2 & 3: 安裝並更新 CA 憑證
+install_and_update_ca() {
+    log "步驟 2: 寫入 CA 憑證"
+    echo "${CA_CERT_CONTENT}" > "${CA_CERT_PATH}"
+    chmod 644 "${CA_CERT_PATH}"
+    echo "憑證已寫入至 ${CA_CERT_PATH}"
+
+    log "步驟 3: 更新系統 CA 憑證庫"
+    update-ca-certificates
+    echo "系統憑證庫更新完成。"
+}
+
+# 步驟 4: 系統更新與清理
+update_and_clean() {
+    log "步驟 4: 執行系統更新與清理"
+
+    echo "--> 重新掛載 /tmp 以允許執行"
+    mount -o remount,exec /tmp
+
+    echo "--> 清除 /var/crash/ 中的舊報告"
+    rm -f /var/crash/*
+
+    echo "--> 正在執行 apt update..."
+    apt-get update
+
+    echo "--> 正在執行 apt-get upgrade..."
+    DEBIAN_FRONTEND=noninteractive apt-get upgrade -y
+
+    echo "--> 正在執行 apt-get dist-upgrade..."
+    DEBIAN_FRONTEND=noninteractive apt-get dist-upgrade -y
+
+    echo "--> 正在執行 apt-get autoremove..."
+    DEBIAN_FRONTEND=noninteractive apt-get autoremove -y
+
+    echo "--> 正在執行 apt-get clean..."
+    apt-get clean
+
+    echo "系統更新與清理完成。"
+}
+
+# 步驟 5: 執行版本升級
+run_release_upgrade() {
+    log "步驟 5: 準備執行版本升級"
+    echo "警告！接下來將啟動作業系統的版本升級程序 (do-release-upgrade)。"
+    echo "此過程可能耗時甚久，且需要您手動確認部分選項。"
+    echo "強烈建議在執行前備份所有重要資料！"
+    
+    read -p "您是否已閱讀以上警告並確定要繼續？ (y/N): " choice
+    case "$choice" in
+      y|Y )
+        echo "正在啟動 do-release-upgrade..."
+        # 執行升級指令，並將代理傳遞給它
+        export http_proxy="${PROXY_URL}"
+        export https_proxy="${PROXY_URL}"
+        do-release-upgrade
+        ;;
+      * )
+        echo "操作已由使用者取消。"
+        exit 0
+        ;;
+    esac
+}
+
+# 步驟 6: 顯示驗證說明
+show_verification_info() {
+    log "步驟 6: 升級完成後的驗證步驟"
+    echo "版本升級程序已啟動。如果一切順利，系統可能會在結束後提示您重新啟動。"
+    echo "請在重新啟動並登入後，手動執行以下指令來驗證："
+    echo ""
+    echo "1. 檢查新的發行版本："
+    echo "   lsb_release -a"
+    echo ""
+    echo "2. 檢查代理環境變數："
+    echo "   env | grep -i proxy"
+    echo ""
+    echo "3. 檢查自訂 CA 憑證是否已成功安裝："
+    echo "   ls /etc/ssl/certs/ | grep '${CA_CERT_FILENAME}'"
+    echo "   或者更可靠的檢查："
+    echo "   awk -v cmd='openssl x509 -noout -subject' '/BEGIN/{close(cmd)};{print | cmd}' < /etc/ssl/certs/ca-certificates.crt | grep 'Your-CA-Name'"
+    echo "   (請將 'Your-CA-Name' 替換成您 CA 憑證中的組織名稱或通用名稱以進行確認)"
+    echo ""
+    echo "腳本主要流程執行完畢。"
+}
+
+
+# --- 主程式執行區 ---
+main() {
+    check_root
+    check_ca_content
+    setup_proxy
+    install_and_update_ca
+    update_and_clean
+    run_release_upgrade
+    show_verification_info
+}
+
+# 執行主函式
+main
+
+exit 0
