@@ -1,60 +1,76 @@
 #!/bin/bash
 
-# =============================================================================
-# 腳本：設定代理、安裝 CA 憑證並執行系統版本升級
+# =======================================================================================
 #
-# 作者：Gemini
-# 版本：1.0
+#                    *** Automated System Upgrade & Certificate Deployment Script ***
 #
-# 使用說明：
-# 1. 【非常重要】請務必編輯下方的 `CA_CERT_CONTENT` 變數，
-#    將您的 CA 憑證完整內容（包含 -----BEGIN...----- 和 -----END...-----）
-#    貼在引號之間。
+# Preamble:
+#   This script is designed to simplify and standardize a series of complex system
+#   administration tasks. From network configuration to core system versioning, it
+#   provides a reliable and repeatable automation solution.
 #
-# 2. 保存此腳本，例如命名為 `upgrade.sh`。
+# Core Features:
+#   1. Proxy Configuration:   Injects proxy server settings for the APT package manager
+#                             and the global system environment.
+#   2. CA Certificate Deploy: Deploys and trusts a custom or corporate root CA
+#                             certificate, seamlessly integrating it into the system's
+#                             trust chain.
+#   3. System Maintenance:    Performs a full suite of system updates, upgrades, and
+#                             cleanup routines to prepare for the release upgrade.
+#   4. Release Upgrade:       Initiates and runs `do-release-upgrade` to perform the
+#                             core operating system upgrade.
 #
-# 3. 賦予執行權限：
-#    chmod +x upgrade.sh
+# User Guide:
+#   1. [CRITICAL] Edit Certificate Content:
+#      You MUST locate the `CA_CERT_CONTENT` variable block below and paste your
+#      full CA certificate content, including the -----BEGIN...----- and
+#      -----END...----- lines.
 #
-# 4. 使用 sudo 執行此腳本：
-#    sudo ./upgrade.sh
+#   2. Grant Execution Permissions:
+#      chmod +x upgrade.sh
 #
-# 5. `do-release-upgrade` 過程需要使用者互動，請依照提示操作。
-# =============================================================================
+#   3. Execute as Superuser:
+#      sudo ./upgrade.sh
+#
+# =======================================================================================
 
-# --- 設定區 ---
+# --- Global Settings & Constants ---
 
-# 如果任何指令失敗，立即停止執行
+# Enable "Exit on Error" mode.
+# This setting ensures that the script will terminate immediately if any command
+# returns a non-zero exit code, preventing a cascade of errors in a faulty state.
 set -e
 
-# 代理伺服器地址與埠號
+# Define the proxy server address. This will be the egress point for all network requests.
 PROXY_URL="http://10.33.35.10:8080"
 
-# CA 憑證檔案名稱
+# Define the filename for the CA certificate. This name will be used to identify it.
 CA_CERT_FILENAME="custom-corp-ca.crt"
 
-# CA 憑證安裝路徑
+# Define the standard installation path for the CA certificate, following Debian/Ubuntu best practices.
 CA_CERT_PATH="/usr/local/share/ca-certificates/${CA_CERT_FILENAME}"
 
 #
-# ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼【 請在這裡編輯 】▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
+# ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼【 USER CONFIGURATION AREA 】▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
 #
-# 將您的 CA 憑證完整內容貼到下方的引號之間。
+# This is the only section of the script that requires manual user intervention.
+# Please paste your complete CA certificate content within the quotes below.
 #
 CA_CERT_CONTENT="""
 -----BEGIN CERTIFICATE-----
-*** 在這裡貼上您的 CA 憑證內容 ***
 *** PASTE YOUR CA CERTIFICATE CONTENT HERE ***
-*** 例如：MII... (很長的一串字元) ***
 -----END CERTIFICATE-----
 """
 #
-# ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲【 編輯完畢 】▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+# ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲【 END OF CONFIGURATION 】▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
 #
 
-# --- 函式定義 ---
+# --- Function Definitions ---
 
-# 格式化輸出日誌
+# log()
+# Formats and prints a standardized log header to the console.
+# Helps to visually segment the script's execution flow.
+# Argument: $1 - The message to be displayed in the header.
 log() {
     echo ""
     echo "=================================================="
@@ -63,139 +79,149 @@ log() {
     echo ""
 }
 
-# 檢查是否以 root 身份執行
+# check_root()
+# Verifies that the script is being executed with superuser (root) privileges.
+# Essential for commands that modify system-level files and settings.
 check_root() {
     if [ "$(id -u)" -ne 0 ]; then
-        echo "錯誤：此腳本必須以 root 權限運行。請使用 'sudo ./upgrade.sh'。" >&2
+        echo "Error: This script must be run with root privileges. Please use 'sudo ./upgrade.sh'." >&2
         exit 1
     fi
 }
 
-# 檢查使用者是否已貼上憑證
+# check_ca_content()
+# Validates that the user has replaced the placeholder certificate content.
+# Prevents the script from running with an empty or invalid certificate.
 check_ca_content() {
     if [[ "$CA_CERT_CONTENT" == *"PASTE YOUR CA CERTIFICATE CONTENT HERE"* ]]; then
-        log "錯誤：請先編輯此腳本檔案"
-        echo "請將您的 CA 憑證內容貼到 'CA_CERT_CONTENT' 變數中後再執行。" >&2
+        log "Error: Please edit the script file first."
+        echo "You must paste your CA certificate content into the 'CA_CERT_CONTENT' variable before running." >&2
         exit 1
     fi
 }
 
-# 步驟 1: 設定代理
+# setup_proxy()
+# Stage 1: Configures the system-wide and APT proxy settings.
 setup_proxy() {
-    log "步驟 1: 設定系統與 APT 代理 (Proxy)"
+    log "Stage 1: Configuring System and APT Proxy"
 
-    # 為 APT 設定代理
-    echo "正在為 APT 建立代理設定檔..."
+    # Configure proxy for APT
+    echo "Creating proxy configuration file for APT..."
     cat <<EOF > /etc/apt/apt.conf.d/99proxy
 Acquire::http::Proxy "${PROXY_URL}";
 Acquire::https::Proxy "${PROXY_URL}";
 Acquire::ftp::Proxy "${PROXY_URL}";
 EOF
-    echo "APT 代理設定完成：/etc/apt/apt.conf.d/99proxy"
+    echo "APT proxy configured: /etc/apt/apt.conf.d/99proxy"
 
-    # 設定全域環境變數代理
-    echo "正在將代理設定新增至 /etc/environment..."
-    # 避免重複寫入
+    # Configure global environment proxy settings
+    echo "Adding proxy settings to /etc/environment..."
+    # Use grep -qxF to prevent duplicate entries on subsequent runs
     grep -qxF "http_proxy=\"${PROXY_URL}\"" /etc/environment || echo "http_proxy=\"${PROXY_URL}\"" >> /etc/environment
     grep -qxF "https_proxy=\"${PROXY_URL}\"" /etc/environment || echo "https_proxy=\"${PROXY_URL}\"" >> /etc/environment
     grep -qxF "ftp_proxy=\"${PROXY_URL}\"" /etc/environment || echo "ftp_proxy=\"${PROXY_URL}\"" >> /etc/environment
     grep -qxF "no_proxy=\"localhost,127.0.0.1,::1\"" /etc/environment || echo "no_proxy=\"localhost,127.0.0.1,::1\"" >> /etc/environment
-    # 為了相容性，也加入大寫版本
+    # Add uppercase versions for compatibility
     grep -qxF "HTTP_PROXY=\"${PROXY_URL}\"" /etc/environment || echo "HTTP_PROXY=\"${PROXY_URL}\"" >> /etc/environment
     grep -qxF "HTTPS_PROXY=\"${PROXY_URL}\"" /etc/environment || echo "HTTPS_PROXY=\"${PROXY_URL}\"" >> /etc/environment
     grep -qxF "FTP_PROXY=\"${PROXY_URL}\"" /etc/environment || echo "FTP_PROXY=\"${PROXY_URL}\"" >> /etc/environment
     grep -qxF "NO_PROXY=\"localhost,127.0.0.1,::1\"" /etc/environment || echo "NO_PROXY=\"localhost,127.0.0.1,::1\"" >> /etc/environment
 
-    echo "系統代理設定完成：/etc/environment"
-    echo "注意：此設定將在下次登入時對整個系統生效。"
+    echo "System proxy configured: /etc/environment"
+    echo "Note: These settings will take effect system-wide upon the next login."
 }
 
-# 步驟 2 & 3: 安裝並更新 CA 憑證
+# install_and_update_ca()
+# Stages 2 & 3: Installs the custom CA certificate and updates the system's trust store.
 install_and_update_ca() {
-    log "步驟 2: 寫入 CA 憑證"
+    log "Stage 2: Writing CA Certificate to disk"
     echo "${CA_CERT_CONTENT}" > "${CA_CERT_PATH}"
     chmod 644 "${CA_CERT_PATH}"
-    echo "憑證已寫入至 ${CA_CERT_PATH}"
+    echo "Certificate written to ${CA_CERT_PATH}"
 
-    log "步驟 3: 更新系統 CA 憑證庫"
+    log "Stage 3: Updating System CA Trust Store"
     update-ca-certificates
-    echo "系統憑證庫更新完成。"
+    echo "System certificate trust store has been updated."
 }
 
-# 步驟 4: 系統更新與清理
+# update_and_clean()
+# Stage 4: Performs a comprehensive system update and cleanup.
 update_and_clean() {
-    log "步驟 4: 執行系統更新與清理"
+    log "Stage 4: Performing System Update and Cleanup"
 
-    echo "--> 重新掛載 /tmp 以允許執行"
+    echo "--> Remounting /tmp with execution permissions"
     mount -o remount,exec /tmp
 
-    echo "--> 清除 /var/crash/ 中的舊報告"
+    echo "--> Clearing old crash reports from /var/crash/"
     rm -f /var/crash/*
 
-    echo "--> 正在執行 apt update..."
+    echo "--> Running apt-get update..."
     apt-get update
 
-    echo "--> 正在執行 apt-get upgrade..."
+    echo "--> Running apt-get upgrade..."
     DEBIAN_FRONTEND=noninteractive apt-get upgrade -y
 
-    echo "--> 正在執行 apt-get dist-upgrade..."
+    echo "--> Running apt-get dist-upgrade..."
     DEBIAN_FRONTEND=noninteractive apt-get dist-upgrade -y
 
-    echo "--> 正在執行 apt-get autoremove..."
+    echo "--> Running apt-get autoremove..."
     DEBIAN_FRONTEND=noninteractive apt-get autoremove -y
 
-    echo "--> 正在執行 apt-get clean..."
+    echo "--> Running apt-get clean..."
     apt-get clean
 
-    echo "系統更新與清理完成。"
+    echo "System update and cleanup complete."
 }
 
-# 步驟 5: 執行版本升級
+# run_release_upgrade()
+# Stage 5: Initiates the distribution upgrade process.
 run_release_upgrade() {
-    log "步驟 5: 準備執行版本升級"
-    echo "警告！接下來將啟動作業系統的版本升級程序 (do-release-upgrade)。"
-    echo "此過程可能耗時甚久，且需要您手動確認部分選項。"
-    echo "強烈建議在執行前備份所有重要資料！"
+    log "Stage 5: Preparing for Release Upgrade"
+    echo "WARNING! The operating system release upgrade (do-release-upgrade) is about to begin."
+    echo "This process can be lengthy and will require your interaction to confirm certain options."
+    echo "It is STRONGLY recommended to back up all critical data before proceeding!"
     
-    read -p "您是否已閱讀以上警告並確定要繼續？ (y/N): " choice
+    read -p "Have you read the warning and wish to continue? (y/N): " choice
     case "$choice" in
       y|Y )
-        echo "正在啟動 do-release-upgrade..."
-        # 執行升級指令，並將代理傳遞給它
+        echo "Starting do-release-upgrade..."
+        # Export proxy settings for the upgrade command's environment
         export http_proxy="${PROXY_URL}"
         export https_proxy="${PROXY_URL}"
         do-release-upgrade
         ;;
       * )
-        echo "操作已由使用者取消。"
+        echo "Operation cancelled by user."
         exit 0
         ;;
     esac
 }
 
-# 步驟 6: 顯示驗證說明
+# show_verification_info()
+# Stage 6: Displays post-upgrade verification instructions.
 show_verification_info() {
-    log "步驟 6: 升級完成後的驗證步驟"
-    echo "版本升級程序已啟動。如果一切順利，系統可能會在結束後提示您重新啟動。"
-    echo "請在重新啟動並登入後，手動執行以下指令來驗證："
+    log "Stage 6: Post-Upgrade Verification Steps"
+    echo "The release upgrade process has been initiated. If successful, the system may prompt you to reboot."
+    echo "After rebooting and logging back in, please manually run the following commands to verify:"
     echo ""
-    echo "1. 檢查新的發行版本："
+    echo "1. Check the new release version:"
     echo "   lsb_release -a"
     echo ""
-    echo "2. 檢查代理環境變數："
+    echo "2. Verify proxy environment variables:"
     echo "   env | grep -i proxy"
     echo ""
-    echo "3. 檢查自訂 CA 憑證是否已成功安裝："
+    echo "3. Confirm the custom CA certificate was installed successfully:"
     echo "   ls /etc/ssl/certs/ | grep '${CA_CERT_FILENAME}'"
-    echo "   或者更可靠的檢查："
+    echo "   Or, for a more robust check:"
     echo "   awk -v cmd='openssl x509 -noout -subject' '/BEGIN/{close(cmd)};{print | cmd}' < /etc/ssl/certs/ca-certificates.crt | grep 'Your-CA-Name'"
-    echo "   (請將 'Your-CA-Name' 替換成您 CA 憑證中的組織名稱或通用名稱以進行確認)"
+    echo "   (Replace 'Your-CA-Name' with the Organization or Common Name from your certificate)"
     echo ""
-    echo "腳本主要流程執行完畢。"
+    echo "Script's main execution flow has completed."
 }
 
 
-# --- 主程式執行區 ---
+# --- Main Execution Block ---
+# Orchestrates the execution of all defined functions in the correct sequence.
 main() {
     check_root
     check_ca_content
@@ -206,7 +232,7 @@ main() {
     show_verification_info
 }
 
-# 執行主函式
+# Invoke the main function to start the script.
 main
 
 exit 0
