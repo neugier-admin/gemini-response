@@ -1,0 +1,8 @@
+系統升級與憑證安裝腳本說明這份文件說明了一個 Shell 腳本，其設計目的是自動化執行一系列系統管理任務，包括設定網路代理、安裝自訂的 CA 憑證，以及執行完整的系統版本升級。功能概覽此腳本會依序執行以下操作：設定代理 (Proxy)：為 apt 套件管理器和整個系統環境設定 HTTP/HTTPS 代理。安裝 CA 憑證：將一個自訂的 CA 憑證安裝到系統的信任庫中。更新系統：執行標準的套件更新、升級與清理。執行版本升級：啟動 do-release-upgrade 程序來升級作業系統版本。提供驗證指引：在腳本結束後，提示使用者如何驗證升級是否成功。前置作業：編輯腳本在使用此腳本之前，您必須手動完成一個關鍵步驟：填寫 CA 憑證：打開腳本檔案 (.sh)，找到名為 CA_CERT_CONTENT 的變數。您必須將您的 CA 憑證完整內容（包含 -----BEGIN CERTIFICATE----- 和 -----END CERTIFICATE----- 的所有行）貼到引號之間。CA_CERT_CONTENT="""
+-----BEGIN CERTIFICATE-----
+*** 在這裡貼上您的 CA 憑證內容 ***
+*** PASTE YOUR CA CERTIFICATE CONTENT HERE ***
+*** 例如：MII... (很長的一串字元) ***
+-----END CERTIFICATE-----
+"""
+如果未執行此步驟，腳本將會報錯並終止執行。腳本執行流程詳解步驟 1: 設定代理 (Proxy)目標: 讓系統可以透過指定的代理伺服器 (10.33.35.10:8080) 連接到網路。執行動作:建立 /etc/apt/apt.conf.d/99proxy 檔案，為 apt 指令設定代理。將 http_proxy 和 https_proxy 等環境變數寫入 /etc/environment 檔案，使其在下次登入後對所有使用者生效。步驟 2 & 3: 安裝並更新 CA 憑證目標: 讓系統信任由您自訂 CA 所簽發的 SSL/TLS 憑證。執行動作:將您在 CA_CERT_CONTENT 變數中填寫的憑證內容寫入到 /usr/local/share/ca-certificates/custom-corp-ca.crt。執行 update-ca-certificates 指令，此指令會掃描指定目錄下的新憑證，並將其加入到系統信任的憑證庫中 (/etc/ssl/certs/)。步驟 4: 系統更新與清理目標: 在版本升級前，確保目前系統的所有套件都已是最新版本，並清理不必要的檔案。執行動作:mount -o remount,exec /tmp: 重新掛載 /tmp 目錄以允許執行檔案，這是某些升級程序可能需要的步驟。rm -f /var/crash/*: 清除舊的系統崩潰報告。依序執行 apt-get update, upgrade, dist-upgrade, autoremove, clean 等一系列指令，以確保系統處於最乾淨、最新的狀態。步驟 5: 執行版本升級目標: 執行主要的作業系統版本升級。執行動作:顯示警告訊息，提醒使用者此操作的風險並要求確認。在使用者輸入 y 或 Y 確認後，執行 do-release-upgrade 指令。此過程需要使用者互動來回答升級過程中的問題。步驟 6: 顯示驗證說明目標: 指導使用者如何在升級與重啟後，確認操作是否成功。執行動作:在終端機輸出文字，建議使用者執行以下指令進行檢查：lsb_release -a: 檢查新的發行版本號。env | grep -i proxy: 檢查代理環境變數是否生效。ls /etc/ssl/certs/ | grep 'custom-corp-ca.crt': 檢查自訂 CA 憑證是否已成功連結。如何使用儲存腳本：將腳本內容儲存為一個檔案，例如 upgrade.sh。編輯憑證：如上所述，使用 nano 或 vim 編輯器填寫 CA_CERT_CONTENT 變數。賦予權限：在終端機中執行 chmod +x upgrade.sh。執行腳本：使用 sudo ./upgrade.sh 來執行。
