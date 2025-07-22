@@ -1,12 +1,23 @@
 document.addEventListener('DOMContentLoaded', () => {
     
     async function initializeApp() {
-        // 讀取索引檔
-        const manifestResponse = await fetch('manifest.json');
-        const pagesManifest = await manifestResponse.json();
+        // 讀取索引檔，並增加錯誤處理
+        let pagesManifest = [];
+        try {
+            const manifestResponse = await fetch('manifest.json');
+            if (!manifestResponse.ok) throw new Error(`無法讀取 manifest.json: ${manifestResponse.statusText}`);
+            pagesManifest = await manifestResponse.json();
+        } catch (error) {
+            console.error("初始化失敗:", error);
+            const htmlOutput = document.getElementById('html-output');
+            htmlOutput.innerHTML = `<p class="text-red-400 font-bold">錯誤：無法載入 manifest.json。請檢查檔案是否存在且格式正確。</p>`;
+            return; // 中斷執行
+        }
 
         // 獲取所有需要的 DOM 元素
-        const tabsContainer = document.getElementById('tabs-container');
+        const navLinksContainer = document.getElementById('nav-links-container');
+        const searchInput = document.getElementById('search-input');
+        const contentTitle = document.getElementById('content-title');
         const htmlOutput = document.getElementById('html-output');
         const lineHeightControls = document.getElementById('line-height-controls');
         const codeButtonContainer = document.getElementById('code-button-container');
@@ -34,6 +45,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const pageInfo = pagesManifest[index];
             if (!pageInfo) return;
 
+            currentPageIndex = index;
+            contentTitle.textContent = pageInfo.title;
+
             try {
                 const contentResponse = await fetch(pageInfo.file);
                 if (!contentResponse.ok) throw new Error(`HTTP error! status: ${contentResponse.status}`);
@@ -45,9 +59,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 htmlOutput.classList.remove('leading-normal', 'leading-relaxed', 'leading-loose');
                 htmlOutput.classList.add(currentLeadingClass);
                 
+                // 觸發淡入動畫
                 htmlOutput.classList.remove('content-fade-in');
-                void htmlOutput.offsetWidth;
+                void htmlOutput.offsetWidth; // 強制重繪
                 htmlOutput.classList.add('content-fade-in');
+
+                // 更新相關 UI
+                renderNavLinks(searchInput.value);
+                renderCodeButton();
             } catch (error) {
                 htmlOutput.innerHTML = `<p class="text-red-400">無法載入內容檔案：${pageInfo.file}</p>`;
                 console.error('Error fetching markdown:', error);
@@ -55,11 +74,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // 根據頁面資訊，渲染「檢視程式碼」按鈕
-        function renderCodeButton(index) {
-            const pageInfo = pagesManifest[index];
+        function renderCodeButton() {
+            const pageInfo = pagesManifest[currentPageIndex];
             codeButtonContainer.innerHTML = ''; // 清空容器
 
-            if (pageInfo.codeFile) {
+            if (pageInfo && pageInfo.codeFile) {
                 const button = document.createElement('button');
                 button.textContent = '檢視程式碼';
                 button.className = 'code-btn';
@@ -83,37 +102,34 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // 渲染所有分頁標籤
-        function renderTabs() {
-            tabsContainer.innerHTML = '';
+        // 渲染側邊欄導航連結
+        function renderNavLinks(filter = '') {
+            navLinksContainer.innerHTML = '';
+            const lowerCaseFilter = filter.toLowerCase();
+
             pagesManifest.forEach((pageInfo, index) => {
-                const isActive = index === currentPageIndex;
-                const button = document.createElement('button');
-                button.textContent = pageInfo.title;
-                
-                button.className = `py-3 px-4 text-sm font-medium border-b-2 transition-colors duration-200 ease-in-out focus:outline-none ${
-                    isActive 
-                    ? 'border-blue-400 text-white' 
-                    : 'border-transparent text-gray-400 hover:text-gray-200'
-                }`;
-                
-                button.addEventListener('click', () => {
-                    currentPageIndex = index;
-                    renderTabs();
-                    renderContent(index);
-                    renderCodeButton(index); // 切換分頁時更新程式碼按鈕
-                });
-                
-                tabsContainer.appendChild(button);
+                if (pageInfo.title.toLowerCase().includes(lowerCaseFilter)) {
+                    const button = document.createElement('button');
+                    button.textContent = pageInfo.title;
+                    button.className = 'nav-link';
+                    
+                    if (index === currentPageIndex) {
+                        button.classList.add('active');
+                    }
+                    
+                    button.addEventListener('click', () => {
+                        renderContent(index);
+                    });
+                    
+                    navLinksContainer.appendChild(button);
+                }
             });
         }
         
         // 更新行距按鈕的樣式
         function updateLhButtonStates() {
             lineHeightControls.querySelectorAll('.lh-btn').forEach(btn => {
-                btn.classList.toggle('bg-blue-500', btn.dataset.leading === currentLeadingClass);
-                btn.classList.toggle('text-white', btn.dataset.leading === currentLeadingClass);
-                btn.classList.toggle('active-lh', btn.dataset.leading === currentLeadingClass);
+                btn.classList.toggle('active', btn.dataset.leading === currentLeadingClass);
             });
         }
         
@@ -125,6 +141,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 htmlOutput.classList.add(currentLeadingClass);
                 updateLhButtonStates();
             });
+        });
+
+        // 綁定搜尋框事件
+        searchInput.addEventListener('input', (e) => {
+            renderNavLinks(e.target.value);
         });
 
         // 關閉 Modal 的邏輯
@@ -140,9 +161,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // --- 程式進入點 ---
         updateLhButtonStates();
-        renderTabs();
+        renderNavLinks();
         renderContent(currentPageIndex);
-        renderCodeButton(currentPageIndex); // 初始載入時也要檢查程式碼按鈕
     }
 
     initializeApp();
