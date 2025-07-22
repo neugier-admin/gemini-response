@@ -23,7 +23,7 @@
     "codeFile": "content/60-postgres.txt"
   },
   {
-    "title": "upgrade",
+    "title": "Upgrade",
     "file": "content/UbuntuUpgrade.md",
     "codeFile": "content/UbuntuUpgrade.txt"
   },
