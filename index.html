@@ -3,11 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Markdown 預覽器</title<!DOCTYPE html>
-<html lang="zh-Hant">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>技術文件中心</title>
 
     <!-- 引入第三方函式庫 -->
@@ -76,77 +71,6 @@
             </div>
             <div class="p-6 overflow-y-auto bg-black/20">
                 <pre><code id="modal-code-content" class="text-sm"></code></pre>
-            </div>
-        </div>
-    </div>
-
-    <!-- 連結到您自己的 JavaScript 檔案 -->
-    <script src="script.js"></script>
-
-</body>
-</html>
-
-
-    <!-- 引入第三方函式庫 -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/showdown/2.1.0/showdown.min.js"></script>
-    
-    <!-- 引入 Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
-    
-    <!-- 連結到您自己的 CSS 檔案 -->
-    <link rel="stylesheet" href="style.css">
-</head>
-<body class="text-gray-200">
-
-    <div class="container mx-auto px-4 py-12 sm:py-16">
-        <header class="text-center mb-10">
-            <h1 class="text-4xl sm:text-5xl font-bold text-white tracking-tight">Markdown 內容預覽</h1>
-            <p class="text-gray-400 mt-3 max-w-xl mx-auto">一個由 Markdown 渲染的靜態頁面，現在支援分頁與行距切換。</p>
-        </header>
-
-        <!-- 卡片式內容容器 -->
-        <div class="max-w-4xl mx-auto content-container">
-            <div class="bg-gray-800/70 backdrop-blur-sm border border-gray-700/60 rounded-xl shadow-2xl shadow-black/20">
-                <!-- 頂部控制欄 -->
-                <div class="flex justify-between items-center border-b border-gray-700/60 pl-4 pr-2 pt-2">
-                    <!-- 分頁按鈕容器 -->
-                    <div id="tabs-container" class="flex">
-                        <!-- Tab 按鈕會由 JS 動態生成 -->
-                    </div>
-                    <!-- 右側控制項 -->
-                    <div class="flex items-center space-x-4">
-                        <!-- 程式碼按鈕容器 -->
-                        <div id="code-button-container" class="pb-2"></div>
-                        <!-- 行距控制按鈕 -->
-                        <div id="line-height-controls" class="flex items-center space-x-1 pb-2">
-                            <span class="text-xs text-gray-500 mr-2">行距</span>
-                            <button data-leading="leading-normal" class="lh-btn text-xs px-2 py-1 rounded transition-colors">緊湊</button>
-                            <button data-leading="leading-relaxed" class="lh-btn text-xs px-2 py-1 rounded transition-colors">預設</button>
-                            <button data-leading="leading-loose" class="lh-btn text-xs px-2 py-1 rounded transition-colors">寬鬆</button>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- 內容顯示區 -->
-                <div id="html-output" class="w-full p-6 md:p-10 prose prose-invert max-w-none">
-                    <!-- 內容會由 JS 動態載入 -->
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 程式碼檢視 Modal -->
-    <div id="code-modal" class="fixed inset-0 bg-black bg-opacity-75 backdrop-blur-sm flex items-center justify-center p-4 hidden z-50">
-        <div class="bg-gray-900 border border-gray-700 rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col">
-            <div class="flex justify-between items-center p-4 border-b border-gray-700 flex-shrink-0">
-                <h3 id="modal-title" class="text-lg font-semibold text-white">檢視程式碼</h3>
-                <button id="modal-close-btn" class="text-gray-400 hover:text-white text-2xl font-bold leading-none">&times;</button>
-            </div>
-            <div class="p-6 overflow-y-auto bg-black/20">
-                <pre><code id="modal-code-content" class="text-sm language-python"></code></pre>
             </div>
         </div>
     </div>
