@@ -8,6 +8,10 @@
     "file": "content/tenable.md",
     "codeFile": "content/tenable_script.txt"
   },
+    {
+    "title": "TenableSetup",
+    "file": "content/TenableSetup.md",
+  },
   {
     "title": "Wazuh",
     "file": "content/WazuhInstallationGuide.md",
