@@ -30,5 +30,9 @@
   {
     "title": "Mail",
     "file": "content/mail.md"
+  },
+  {
+    "title": "Proxy",
+    "file": "content/proxy.md"
   }
 ]
