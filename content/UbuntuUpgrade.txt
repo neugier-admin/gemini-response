@@ -2,59 +2,33 @@
 
 # =======================================================================================
 #
-#                    *** Automated System Upgrade & Certificate Deployment Script ***
+#                    *** Ubuntu Smart Two-Stage Upgrade Script ***
 #
-# Preamble:
-#   This script is designed to simplify and standardize a series of complex system
-#   administration tasks. From network configuration to core system versioning, it
-#   provides a reliable and repeatable automation solution.
+# This smart script automatically detects your current Ubuntu version and executes
+# the appropriate upgrade stage.
 #
-# Core Features:
-#   1. Proxy Configuration:   Injects proxy server settings for the APT package manager
-#                             and the global system environment.
-#   2. CA Certificate Deploy: Deploys and trusts a custom or corporate root CA
-#                             certificate, seamlessly integrating it into the system's
-#                             trust chain.
-#   3. System Maintenance:    Performs a full suite of system updates, upgrades, and
-#                             cleanup routines to prepare for the release upgrade.
-#   4. Release Upgrade:       Initiates and runs `do-release-upgrade` to perform the
-#                             core operating system upgrade.
+# Execution Flow:
+#   1. Run on Ubuntu 20.04:
+#      - The script performs all necessary preparations (including AIDE config) and
+#        upgrades the system to 22.04.
+#      - After completion, please reboot the system.
 #
-# User Guide:
-#   1. [CRITICAL] Edit Certificate Content:
-#      You MUST locate the `CA_CERT_CONTENT` variable block below and paste your
-#      full CA certificate content, including the -----BEGIN...----- and
-#      -----END...----- lines.
-#
-#   2. Grant Execution Permissions:
-#      chmod +x upgrade.sh
-#
-#   3. Execute as Superuser:
-#      sudo ./upgrade.sh
+#   2. Run the same script again on the upgraded Ubuntu 22.04 system:
+#      - The script will detect the new version, perform the second-stage preparations,
+#        and upgrade the system to 24.04.
 #
 # =======================================================================================
 
 # --- Global Settings & Constants ---
-
-# Enable "Exit on Error" mode.
-# This setting ensures that the script will terminate immediately if any command
-# returns a non-zero exit code, preventing a cascade of errors in a faulty state.
 set -e
-
-# Define the proxy server address. This will be the egress point for all network requests.
 PROXY_URL="http://10.33.35.10:8080"
-
-# Define the filename for the CA certificate. This name will be used to identify it.
-CA_CERT_FILENAME="custom-corp-ca.crt"
-
-# Define the standard installation path for the CA certificate, following Debian/Ubuntu best practices.
+CA_CERT_FILENAME="root-ca.crt"
 CA_CERT_PATH="/usr/local/share/ca-certificates/${CA_CERT_FILENAME}"
 
 #
 # ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼【 USER CONFIGURATION AREA 】▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
 #
-# This is the only section of the script that requires manual user intervention.
-# Please paste your complete CA certificate content within the quotes below.
+# Please paste your complete CA certificate content between the quotes below.
 #
 CA_CERT_CONTENT="""
 -----BEGIN CERTIFICATE-----
@@ -66,11 +40,6 @@ CA_CERT_CONTENT="""
 #
 
 # --- Function Definitions ---
-
-# log()
-# Formats and prints a standardized log header to the console.
-# Helps to visually segment the script's execution flow.
-# Argument: $1 - The message to be displayed in the header.
 log() {
     echo ""
     echo "=================================================="
@@ -79,113 +48,250 @@ log() {
     echo ""
 }
 
-# check_root()
-# Verifies that the script is being executed with superuser (root) privileges.
-# Essential for commands that modify system-level files and settings.
 check_root() {
     if [ "$(id -u)" -ne 0 ]; then
-        echo "Error: This script must be run with root privileges. Please use 'sudo ./upgrade.sh'." >&2
+        echo "Error: This script must be run with root privileges. Please use 'sudo ./smart_upgrade.sh'" >&2
         exit 1
     fi
 }
 
-# check_ca_content()
-# Validates that the user has replaced the placeholder certificate content.
-# Prevents the script from running with an empty or invalid certificate.
 check_ca_content() {
     if [[ "$CA_CERT_CONTENT" == *"PASTE YOUR CA CERTIFICATE CONTENT HERE"* ]]; then
-        log "Error: Please edit the script file first."
+        log "Error: Please edit this script file first."
         echo "You must paste your CA certificate content into the 'CA_CERT_CONTENT' variable before running." >&2
         exit 1
     fi
 }
 
-# setup_proxy()
-# Stage 1: Configures the system-wide and APT proxy settings.
+# Full proxy setup (for stage 1)
 setup_proxy() {
-    log "Stage 1: Configuring System and APT Proxy"
-
-    # Configure proxy for APT
-    echo "Creating proxy configuration file for APT..."
+    log "Setting up System and APT Proxy"
+    echo "--> Creating proxy configuration file for APT..."
     cat <<EOF > /etc/apt/apt.conf.d/99proxy
 Acquire::http::Proxy "${PROXY_URL}";
 Acquire::https::Proxy "${PROXY_URL}";
 Acquire::ftp::Proxy "${PROXY_URL}";
 EOF
-    echo "APT proxy configured: /etc/apt/apt.conf.d/99proxy"
-
-    # Configure global environment proxy settings
-    echo "Adding proxy settings to /etc/environment..."
-    # Use grep -qxF to prevent duplicate entries on subsequent runs
+    echo "--> APT proxy configuration complete: /etc/apt/apt.conf.d/99proxy"
+    echo "--> Adding proxy settings to /etc/environment..."
     grep -qxF "http_proxy=\"${PROXY_URL}\"" /etc/environment || echo "http_proxy=\"${PROXY_URL}\"" >> /etc/environment
     grep -qxF "https_proxy=\"${PROXY_URL}\"" /etc/environment || echo "https_proxy=\"${PROXY_URL}\"" >> /etc/environment
-    grep -qxF "ftp_proxy=\"${PROXY_URL}\"" /etc/environment || echo "ftp_proxy=\"${PROXY_URL}\"" >> /etc/environment
-    grep -qxF "no_proxy=\"localhost,127.0.0.1,::1\"" /etc/environment || echo "no_proxy=\"localhost,127.0.0.1,::1\"" >> /etc/environment
-    # Add uppercase versions for compatibility
-    grep -qxF "HTTP_PROXY=\"${PROXY_URL}\"" /etc/environment || echo "HTTP_PROXY=\"${PROXY_URL}\"" >> /etc/environment
-    grep -qxF "HTTPS_PROXY=\"${PROXY_URL}\"" /etc/environment || echo "HTTPS_PROXY=\"${PROXY_URL}\"" >> /etc/environment
-    grep -qxF "FTP_PROXY=\"${PROXY_URL}\"" /etc/environment || echo "FTP_PROXY=\"${PROXY_URL}\"" >> /etc/environment
-    grep -qxF "NO_PROXY=\"localhost,127.0.0.1,::1\"" /etc/environment || echo "NO_PROXY=\"localhost,127.0.0.1,::1\"" >> /etc/environment
-
-    echo "System proxy configured: /etc/environment"
-    echo "Note: These settings will take effect system-wide upon the next login."
+    echo "--> System proxy configuration complete: /etc/environment"
 }
 
-# install_and_update_ca()
-# Stages 2 & 3: Installs the custom CA certificate and updates the system's trust store.
+# Full CA certificate installation (for stage 1)
 install_and_update_ca() {
-    log "Stage 2: Writing CA Certificate to disk"
+    log "Installing and Updating CA Certificate"
     echo "${CA_CERT_CONTENT}" > "${CA_CERT_PATH}"
     chmod 644 "${CA_CERT_PATH}"
-    echo "Certificate written to ${CA_CERT_PATH}"
-
-    log "Stage 3: Updating System CA Trust Store"
+    echo "--> Certificate has been written to ${CA_CERT_PATH}"
     update-ca-certificates
-    echo "System certificate trust store has been updated."
+    echo "--> System certificate store has been updated."
 }
 
-# update_and_clean()
-# Stage 4: Performs a comprehensive system update and cleanup.
-update_and_clean() {
-    log "Stage 4: Performing System Update and Cleanup"
+# Verify proxy and CA (for stage 2)
+verify_proxy_and_ca() {
+    log "Verifying Proxy and CA Certificate Settings"
+    if [ ! -f "/etc/apt/apt.conf.d/99proxy" ]; then
+        echo "--> Warning: APT proxy configuration not found. Re-configuring..."
+        setup_proxy
+    else
+        echo "--> APT proxy configuration already exists."
+    fi
 
-    echo "--> Remounting /tmp with execution permissions"
-    mount -o remount,exec /tmp
+    if [ ! -f "${CA_CERT_PATH}" ]; then
+        echo "--> Warning: CA certificate file not found. Re-installing..."
+        install_and_update_ca
+    else
+        echo "--> CA certificate already exists."
+    fi
+}
 
-    echo "--> Clearing old crash reports from /var/crash/"
+# System stabilization (runs in both stages)
+stabilize_system() {
+    log "Stabilizing System and Performing Deep Clean"
+    echo "--> Clearing old crash reports"
     rm -f /var/crash/*
-
-    echo "--> Running apt-get update..."
+    echo "--> Running apt update..."
     apt-get update
-
-    echo "--> Running apt-get upgrade..."
-    DEBIAN_FRONTEND=noninteractive apt-get upgrade -y
-
-    echo "--> Running apt-get dist-upgrade..."
-    DEBIAN_FRONTEND=noninteractive apt-get dist-upgrade -y
-
-    echo "--> Running apt-get autoremove..."
-    DEBIAN_FRONTEND=noninteractive apt-get autoremove -y
-
-    echo "--> Running apt-get clean..."
+    echo "--> Running apt upgrade (preserving local configuration files)..."
+    DEBIAN_FRONTEND=noninteractive apt-get -o Dpkg::Options::="--force-confold" upgrade -y
+    echo "--> Running apt dist-upgrade (preserving local configuration files)..."
+    DEBIAN_FRONTEND=noninteractive apt-get -o Dpkg::Options::="--force-confold" dist-upgrade -y
+    echo "--> Fixing any broken package dependencies..."
+    DEBIAN_FRONTEND=noninteractive apt-get --fix-broken install -y
+    echo "--> Reconfiguring any pending dpkg packages..."
+    dpkg --configure -a
+    echo "--> Autoremoving and purging old packages..."
+    DEBIAN_FRONTEND=noninteractive apt-get autoremove --purge -y
+    echo "--> Cleaning up local package cache..."
     apt-get clean
-
-    echo "System update and cleanup complete."
+    echo "--> System stabilization and cleanup complete."
 }
 
-# run_release_upgrade()
-# Stage 5: Initiates the distribution upgrade process.
+# Standardized PAM configuration upgrade using pam-auth-update (for stage 1)
+update_pam_configuration_standard() {
+    log "Upgrading PAM Configuration: Setting up pam_faillock with pam-auth-update"
+
+    # --- Part 1: Disable legacy pam_tally modules ---
+    PAM_DIR="/etc/pam.d"
+    echo "--> Searching for legacy pam_tally/pam_tally2 modules..."
+    TALLY_FILES=$(mktemp)
+    grep -lrwE "pam_tally.so|pam_tally2.so" "${PAM_DIR}" > "${TALLY_FILES}" || true
+    if [ ! -s "${TALLY_FILES}" ]; then
+        echo "--> No legacy pam_tally modules found. Skipping disablement."
+    else
+        echo "--> Found legacy PAM modules. Backing up and disabling..."
+        while IFS= read -r file; do
+            if [ -n "$file" ]; then
+                BACKUP_FILE="${file}.bak.$(date +%F-%T)"
+                cp "${file}" "${BACKUP_FILE}"
+                sed -i.pre-upgrade -E 's/^(.*(pam_tally\.so|pam_tally2\.so).*)$/#\1/g' "${file}"
+            fi
+        done < "${TALLY_FILES}"
+        echo "--> Legacy PAM modules disabled."
+    fi
+    rm -f "${TALLY_FILES}"
+
+    # --- Part 2: Create pam-auth-update config file for pam_faillock ---
+    FAILLOCK_CONFIG_FILE="/usr/share/pam-configs/faillock"
+    echo "--> Checking for faillock config file for pam-auth-update..."
+    if [ -f "${FAILLOCK_CONFIG_FILE}" ]; then
+        echo "--> Config file ${FAILLOCK_CONFIG_FILE} already exists. No creation needed."
+    else
+        echo "--> Creating ${FAILLOCK_CONFIG_FILE}..."
+        cat <<'EOF' > "${FAILLOCK_CONFIG_FILE}"
+Name: Lock out accounts after failed logins
+Default: yes
+Priority: 900
+Auth-Type: Primary
+Auth:
+	[success=1 default=ignore]	pam_faillock.so preauth audit silent deny=5 unlock_time=900
+	required			pam_faillock.so authfail audit deny=5 unlock_time=900
+Account-Type: Primary
+Account:
+	required			pam_faillock.so
+EOF
+        echo "--> faillock config file created."
+    fi
+
+    # --- Part 3: Run pam-auth-update non-interactively ---
+    echo "--> Enabling faillock profile with pam-auth-update..."
+    pam-auth-update --enable faillock
+    echo "--> pam-auth-update executed."
+
+    # --- Part 4: Clean up old log files ---
+    echo "--> Removing old tally log files..."
+    rm -f /var/log/faillog /var/log/tallylog
+    echo "--> PAM configuration upgrade complete."
+}
+
+# Vim plugin cleanup (for stage 1)
+handle_vim_plugin_cleanup() {
+    log "Performing User-Specific Configuration Cleanup (Vim)"
+    VIMRC_FILE="/root/.vimrc"
+
+    if [ ! -f "${VIMRC_FILE}" ]; then
+        echo "--> ${VIMRC_FILE} not found. Skipping Vim plugin cleanup."
+        return
+    fi
+
+    # List of plugins to disable and clean
+    PLUGINS_TO_DISABLE=(
+        "tpope/vim-fugitive"
+        "Yggdroot/indentLine"
+    )
+
+    changes_made=false
+
+    for plugin in "${PLUGINS_TO_DISABLE[@]}"; do
+        # Check if plugin exists and is not already commented out
+        if grep -q "^\s*Plug '${plugin}'" "${VIMRC_FILE}"; then
+            if ! $changes_made; then
+                # Only back up once, on the first change found
+                VIMRC_BACKUP="/root/.vimrc.bak.$(date +%F-%T)"
+                echo "--> Found plugins to clean. Backing up ${VIMRC_FILE} to ${VIMRC_BACKUP}"
+                cp "${VIMRC_FILE}" "${VIMRC_BACKUP}"
+                changes_made=true
+            fi
+            
+            echo "--> Commenting out plugin: ${plugin}"
+            # Use a different delimiter to avoid issues with slashes in the path
+            sed -i.vim-cleanup "s|^\s*Plug '${plugin}'|\"&|" "${VIMRC_FILE}"
+        else
+            echo "--> Plugin '${plugin}' not found or already commented out. Skipping."
+        fi
+    done
+
+    # If any changes were made, run PlugClean
+    if $changes_made; then
+        echo "--> Running 'PlugClean' to remove commented plugins..."
+        if command -v vim &> /dev/null; then
+            # Use PlugClean! to run non-interactively. Wrap in try/catch to prevent
+            # errors if vim-plug is not installed properly, which would halt the script.
+            vim -u "${VIMRC_FILE}" -c "try | PlugClean! | catch | endtry" -c "qa!"
+            echo "--> Vim 'PlugClean' process completed."
+        else
+            echo "--> Warning: 'vim' command not found. Cannot run PlugClean automatically."
+        fi
+    else
+        echo "--> No Vim plugins needed cleaning."
+    fi
+
+    echo "--> Vim cleanup complete."
+}
+
+
+# Configure AIDE (for stage 1)
+configure_aide() {
+    log "Configuring AIDE Ignore Rules"
+    AIDE_CONF="/etc/aide/aide.conf"
+
+    if [ ! -f "${AIDE_CONF}" ]; then
+        echo "--> AIDE config file (${AIDE_CONF}) not found. Skipping this step."
+        return
+    fi
+
+    echo "--> Checking and adding AIDE ignore rules..."
+    
+    # Create a backup before modifying
+    cp "${AIDE_CONF}" "${AIDE_CONF}.bak.$(date +%F-%T)"
+
+    # List of rules to add
+    RULES_TO_ADD=(
+        "!/var/log"
+        "!/run"
+        "!/tmp"
+        "!/data"
+    )
+
+    for rule in "${RULES_TO_ADD[@]}"; do
+        # Use grep -qF -- to treat the rule as a fixed string and avoid issues with special characters
+        if grep -qF -- "${rule}" "${AIDE_CONF}"; then
+            echo "--> Rule '${rule}' already exists."
+        else
+            echo "--> Adding rule: ${rule}"
+            # Append the rule to the end of the file
+            echo "${rule}" >> "${AIDE_CONF}"
+        fi
+    done
+
+    echo "--> AIDE configuration complete."
+}
+
+
+# Run the release upgrade (runs in both stages)
 run_release_upgrade() {
-    log "Stage 5: Preparing for Release Upgrade"
-    echo "WARNING! The operating system release upgrade (do-release-upgrade) is about to begin."
+    log "Preparing for Release Upgrade"
+    echo "WARNING! The operating system release upgrade is about to begin."
     echo "This process can be lengthy and will require your interaction to confirm certain options."
     echo "It is STRONGLY recommended to back up all critical data before proceeding!"
-    
     read -p "Have you read the warning and wish to continue? (y/N): " choice
     case "$choice" in
       y|Y )
+        echo "--> Remounting /tmp with execution permissions to ensure a smooth upgrade..."
+        mount -o remount,exec /tmp
         echo "Starting do-release-upgrade..."
-        # Export proxy settings for the upgrade command's environment
         export http_proxy="${PROXY_URL}"
         export https_proxy="${PROXY_URL}"
         do-release-upgrade
@@ -197,42 +303,53 @@ run_release_upgrade() {
     esac
 }
 
-# show_verification_info()
-# Stage 6: Displays post-upgrade verification instructions.
-show_verification_info() {
-    log "Stage 6: Post-Upgrade Verification Steps"
-    echo "The release upgrade process has been initiated. If successful, the system may prompt you to reboot."
-    echo "After rebooting and logging back in, please manually run the following commands to verify:"
-    echo ""
-    echo "1. Check the new release version:"
-    echo "   lsb_release -a"
-    echo ""
-    echo "2. Verify proxy environment variables:"
-    echo "   env | grep -i proxy"
-    echo ""
-    echo "3. Confirm the custom CA certificate was installed successfully:"
-    echo "   ls /etc/ssl/certs/ | grep '${CA_CERT_FILENAME}'"
-    echo "   Or, for a more robust check:"
-    echo "   awk -v cmd='openssl x509 -noout -subject' '/BEGIN/{close(cmd)};{print | cmd}' < /etc/ssl/certs/ca-certificates.crt | grep 'Your-CA-Name'"
-    echo "   (Replace 'Your-CA-Name' with the Organization or Common Name from your certificate)"
-    echo ""
-    echo "Script's main execution flow has completed."
-}
-
-
 # --- Main Execution Block ---
-# Orchestrates the execution of all defined functions in the correct sequence.
 main() {
     check_root
     check_ca_content
-    setup_proxy
-    install_and_update_ca
-    update_and_clean
-    run_release_upgrade
-    show_verification_info
+
+    # Detect OS version
+    if [ -f /etc/lsb-release ]; then
+        . /etc/lsb-release
+        OS_VERSION=$DISTRIB_RELEASE
+    else
+        echo "Error: Could not detect Ubuntu version."
+        exit 1
+    fi
+
+    log "Detected current Ubuntu version: ${OS_VERSION}"
+
+    case "$OS_VERSION" in
+        "20.04")
+            log "Starting Stage 1 Upgrade: 20.04 -> 22.04"
+            setup_proxy
+            install_and_update_ca
+            stabilize_system
+            update_pam_configuration_standard
+            handle_vim_plugin_cleanup
+            configure_aide
+            run_release_upgrade
+            log "Stage 1 upgrade process has been initiated. After it completes, please REBOOT the system, then run this script again for the final upgrade to 24.04."
+            ;;
+        "22.04")
+            log "Starting Stage 2 Upgrade: 22.04 -> 24.04"
+            verify_proxy_and_ca
+            stabilize_system
+            run_release_upgrade
+            log "Stage 2 upgrade process has been initiated. Please reboot after completion."
+            ;;
+        "24.04")
+            log "System is already at the latest supported version (24.04). No action needed."
+            exit 0
+            ;;
+        *)
+            log "Error: Unsupported Ubuntu version (${OS_VERSION})."
+            echo "This script only supports upgrading from 20.04 or 22.04."
+            exit 1
+            ;;
+    esac
 }
 
-# Invoke the main function to start the script.
+# Invoke the main function
 main
-
 exit 0
