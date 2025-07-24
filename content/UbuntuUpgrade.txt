@@ -283,6 +283,21 @@ configure_aide() {
 # Run the release upgrade (runs in both stages)
 run_release_upgrade() {
     log "Preparing for Release Upgrade"
+
+    # --- Proxy Verification Step ---
+    echo "--> Verifying proxy connectivity to changelogs.ubuntu.com..."
+    # We use http here instead of https because the primary goal is to test proxy connectivity, not the CA certificate.
+    if http_proxy="${PROXY_URL}" https_proxy="${PROXY_URL}" curl --head --fail --silent --output /dev/null --connect-timeout 15 http://changelogs.ubuntu.com; then
+        echo "--> Proxy verification successful. Connection established."
+    else
+        log "Error: Proxy Verification Failed!"
+        echo "Could not connect to http://changelogs.ubuntu.com through the proxy: ${PROXY_URL}"
+        echo "Please check your proxy settings, network connection, and firewall rules."
+        echo "The upgrade process will now be aborted to prevent further issues."
+        exit 1
+    fi
+    # --- End of Verification Step ---
+
     echo "WARNING! The operating system release upgrade is about to begin."
     echo "This process can be lengthy and will require your interaction to confirm certain options."
     echo "It is STRONGLY recommended to back up all critical data before proceeding!"
@@ -291,10 +306,11 @@ run_release_upgrade() {
       y|Y )
         echo "--> Remounting /tmp with execution permissions to ensure a smooth upgrade..."
         mount -o remount,exec /tmp
-        echo "Starting do-release-upgrade..."
+        echo "--> Starting non-interactive release upgrade. The process will now run automatically."
         export http_proxy="${PROXY_URL}"
         export https_proxy="${PROXY_URL}"
-        do-release-upgrade
+        # Run do-release-upgrade in a non-interactive mode to auto-confirm its internal prompts.
+        DEBIAN_FRONTEND=noninteractive do-release-upgrade -f DistUpgradeViewNonInteractive
         ;;
       * )
         echo "Operation cancelled by user."
