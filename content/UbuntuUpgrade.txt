@@ -21,7 +21,11 @@
 
 # --- Global Settings & Constants ---
 set -e
-PROXY_URL="http://10.33.35.10:8080"
+# Proxy for the APT package manager (e.g., apt-cacher-ng)
+APT_PROXY_URL="http://10.33.35.10:3142"
+# Environment proxy for other connections (e.g., curl, do-release-upgrade)
+ENV_PROXY_URL="http://10.33.35.10:8080"
+
 CA_CERT_FILENAME="root-ca.crt"
 CA_CERT_PATH="/usr/local/share/ca-certificates/${CA_CERT_FILENAME}"
 
@@ -66,17 +70,17 @@ check_ca_content() {
 # Full proxy setup (for stage 1)
 setup_proxy() {
     log "Setting up System and APT Proxy"
-    echo "--> Creating proxy configuration file for APT..."
+    echo "--> Creating proxy configuration file for APT (${APT_PROXY_URL})..."
     cat <<EOF > /etc/apt/apt.conf.d/99proxy
-Acquire::http::Proxy "${PROXY_URL}";
-Acquire::https::Proxy "${PROXY_URL}";
-Acquire::ftp::Proxy "${PROXY_URL}";
+Acquire::http::Proxy "${APT_PROXY_URL}";
+Acquire::https::Proxy "${APT_PROXY_URL}";
+Acquire::ftp::Proxy "${APT_PROXY_URL}";
 EOF
     echo "--> APT proxy configuration complete: /etc/apt/apt.conf.d/99proxy"
-    echo "--> Adding proxy settings to /etc/environment..."
-    grep -qxF "http_proxy=\"${PROXY_URL}\"" /etc/environment || echo "http_proxy=\"${PROXY_URL}\"" >> /etc/environment
-    grep -qxF "https_proxy=\"${PROXY_URL}\"" /etc/environment || echo "https_proxy=\"${PROXY_URL}\"" >> /etc/environment
-    echo "--> System proxy configuration complete: /etc/environment"
+    echo "--> Adding environment proxy settings to /etc/environment (${ENV_PROXY_URL})..."
+    grep -qxF "http_proxy=\"${ENV_PROXY_URL}\"" /etc/environment || echo "http_proxy=\"${ENV_PROXY_URL}\"" >> /etc/environment
+    grep -qxF "https_proxy=\"${ENV_PROXY_URL}\"" /etc/environment || echo "https_proxy=\"${ENV_PROXY_URL}\"" >> /etc/environment
+    echo "--> System environment proxy configuration complete: /etc/environment"
 }
 
 # Full CA certificate installation (for stage 1)
@@ -285,13 +289,12 @@ run_release_upgrade() {
     log "Preparing for Release Upgrade"
 
     # --- Proxy Verification Step ---
-    echo "--> Verifying proxy connectivity to changelogs.ubuntu.com..."
-    # We use http here instead of https because the primary goal is to test proxy connectivity, not the CA certificate.
-    if http_proxy="${PROXY_URL}" https_proxy="${PROXY_URL}" curl --head --fail --silent --output /dev/null --connect-timeout 15 http://changelogs.ubuntu.com; then
+    echo "--> Verifying environment proxy (${ENV_PROXY_URL}) connectivity to changelogs.ubuntu.com..."
+    if http_proxy="${ENV_PROXY_URL}" https_proxy="${ENV_PROXY_URL}" curl --head --fail --silent --output /dev/null --connect-timeout 15 http://changelogs.ubuntu.com; then
         echo "--> Proxy verification successful. Connection established."
     else
         log "Error: Proxy Verification Failed!"
-        echo "Could not connect to http://changelogs.ubuntu.com through the proxy: ${PROXY_URL}"
+        echo "Could not connect to http://changelogs.ubuntu.com through the proxy: ${ENV_PROXY_URL}"
         echo "Please check your proxy settings, network connection, and firewall rules."
         echo "The upgrade process will now be aborted to prevent further issues."
         exit 1
@@ -307,8 +310,8 @@ run_release_upgrade() {
         echo "--> Remounting /tmp with execution permissions to ensure a smooth upgrade..."
         mount -o remount,exec /tmp
         echo "--> Starting non-interactive release upgrade. The process will now run automatically."
-        export http_proxy="${PROXY_URL}"
-        export https_proxy="${PROXY_URL}"
+        export http_proxy="${ENV_PROXY_URL}"
+        export https_proxy="${ENV_PROXY_URL}"
         # Run do-release-upgrade in a non-interactive mode to auto-confirm its internal prompts.
         DEBIAN_FRONTEND=noninteractive do-release-upgrade -f DistUpgradeViewNonInteractive
         ;;
