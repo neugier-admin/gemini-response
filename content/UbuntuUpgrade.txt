@@ -159,23 +159,27 @@ stabilize_system() {
 update_pam_configuration_standard() {
     log "Upgrading PAM Configuration: Setting up pam_faillock with pam-auth-update"
 
-    # --- Part 1: Disable legacy pam_tally modules ---
+    # --- Part 1: Remove legacy pam_tally modules ---
     PAM_DIR="/etc/pam.d"
-    echo "--> Searching for legacy pam_tally/pam_tally2 modules..."
+    echo "--> Searching for and removing legacy pam_tally/pam_tally2 modules..."
     TALLY_FILES=$(mktemp)
+    # Find files containing the module names. -l prints filenames only.
     grep -lrwE "pam_tally.so|pam_tally2.so" "${PAM_DIR}" > "${TALLY_FILES}" || true
     if [ ! -s "${TALLY_FILES}" ]; then
-        echo "--> No legacy pam_tally modules found. Skipping disablement."
+        echo "--> No legacy pam_tally modules found. Skipping removal."
     else
-        echo "--> Found legacy PAM modules. Backing up and disabling..."
+        echo "--> Found legacy PAM modules. Backing up and removing..."
         while IFS= read -r file; do
             if [ -n "$file" ]; then
                 BACKUP_FILE="${file}.bak.$(date +%F-%T)"
+                echo "--> Backing up '${file}' to '${BACKUP_FILE}'"
                 cp "${file}" "${BACKUP_FILE}"
-                sed -i.pre-upgrade -E 's/^(.*(pam_tally\.so|pam_tally2\.so).*)$/#\1/g' "${file}"
+                # Delete any line containing pam_tally.so or pam_tally2.so
+                echo "--> Removing legacy module lines from '${file}'"
+                sed -i.pre-upgrade -E '/pam_tally\.so|pam_tally2\.so/d' "${file}"
             fi
         done < "${TALLY_FILES}"
-        echo "--> Legacy PAM modules disabled."
+        echo "--> Legacy PAM modules removed."
     fi
     rm -f "${TALLY_FILES}"
 
@@ -201,9 +205,9 @@ EOF
         echo "--> faillock config file created."
     fi
 
-    # --- Part 3: Run pam-auth-update non-interactively ---
-    echo "--> Enabling faillock profile with pam-auth-update..."
-    pam-auth-update --enable faillock
+    # --- Part 3: Run pam-auth-update non-interactively with --force ---
+    echo "--> Forcibly enabling faillock profile with pam-auth-update..."
+    pam-auth-update --force --enable faillock
     echo "--> pam-auth-update executed."
 
     # --- Part 4: Clean up old log files ---
