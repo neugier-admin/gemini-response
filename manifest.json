@@ -3,6 +3,10 @@
     "title": "歡迎頁面",
     "file": "content/welcome.md"
   },
+    {
+    "title": "features",
+    "file": "content/features.md",
+  },
   {
     "title": "Tenable",
     "file": "content/tenable.md",
