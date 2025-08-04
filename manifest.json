@@ -47,5 +47,6 @@
   {
     "title": "Tmp",
     "file": "content/tmp.md"
+    "codeFile": "content/tmp.txt"
   }
 ]
