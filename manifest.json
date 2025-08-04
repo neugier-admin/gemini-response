@@ -6,6 +6,7 @@
     {
     "title": "Features",
     "file": "content/features.md"
+    "codeFile": "content/features.txt"
   },
   {
     "title": "Tenable",
