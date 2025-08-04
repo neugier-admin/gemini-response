@@ -5,13 +5,13 @@ document.addEventListener('DOMContentLoaded', () => {
         let pagesManifest = [];
         try {
             const manifestResponse = await fetch('manifest.json');
-            if (!manifestResponse.ok) throw new Error(`無法讀取 manifest.json: ${manifestResponse.statusText}`);
+            if (!manifestResponse.ok) throw new Error(`Unable to load manifest.json: ${manifestResponse.statusText}`);
             pagesManifest = await manifestResponse.json();
         } catch (error) {
             console.error("初始化失敗:", error);
             const htmlOutput = document.getElementById('html-output');
             if (htmlOutput) {
-                htmlOutput.innerHTML = `<p class="text-red-400 font-bold">錯誤：無法載入 manifest.json。請檢查檔案是否存在且格式正確。</p>`;
+                htmlOutput.innerHTML = `<p class="text-red-400 font-bold">Error：Unable to load manifest.json . Please Check the file exists and is in the correct format.</p>`;
             }
             return; // 中斷執行
         }
@@ -68,7 +68,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 updateActiveNavLink(); // 更新導航連結的啟用狀態
                 renderCodeButton(); // 更新「檢視程式碼」按鈕
             } catch (error) {
-                htmlOutput.innerHTML = `<p class="text-red-400">無法載入內容檔案：${pageInfo.file}</p>`;
+                htmlOutput.innerHTML = `<p class="text-red-400">Cannot read content file：${pageInfo.file}</p>`;
                 console.error('Error fetching markdown:', error);
             }
         }
@@ -114,20 +114,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (pageInfo && pageInfo.codeFile) {
                 const button = document.createElement('button');
-                button.textContent = '檢視程式碼';
+                button.textContent = 'View code';
                 button.className = 'code-btn';
                 
                 button.addEventListener('click', async () => {
                     try {
                         const codeResponse = await fetch(pageInfo.codeFile);
-                        if (!codeResponse.ok) throw new Error(`HTTP 錯誤! 狀態: ${codeResponse.status}`);
+                        if (!codeResponse.ok) throw new Error(`HTTP Error! Status: ${codeResponse.status}`);
                         const codeText = await codeResponse.text();
                         
-                        modalTitle.textContent = `檢視程式碼：${pageInfo.codeFile}`;
+                        modalTitle.textContent = `View code：${pageInfo.codeFile}`;
                         modalCodeContent.textContent = codeText;
                         codeModal.classList.remove('hidden');
                     } catch (error) {
-                        alert(`無法載入程式碼檔案：${pageInfo.codeFile}`);
+                        alert(`Unable to load code file：${pageInfo.codeFile}`);
                         console.error('Error fetching code file:', error);
                     }
                 });
