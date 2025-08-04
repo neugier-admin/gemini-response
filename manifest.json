@@ -5,7 +5,7 @@
   },
     {
     "title": "Features",
-    "file": "content/features.md"
+    "file": "content/features.md",
     "codeFile": "content/features.txt"
   },
   {
@@ -46,7 +46,7 @@
   },
   {
     "title": "Tmp",
-    "file": "content/tmp.md"
+    "file": "content/tmp.md",
     "codeFile": "content/tmp.txt"
   }
 ]
