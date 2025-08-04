@@ -1,35 +1,86 @@
+# SIEM Platform Evaluation: Wazuh vs. Elastic vs. Splunk
 
-
-### Part 1: AI Assistant & Large Language Models (LLM)
-
-1.  **AI Integration Model**: Is the platform's AI assistant a native, out-of-the-box feature, or does it require us to integrate our own external LLMs (e.g., OpenAI)?
-2.  **AI Application Scenarios**: Beyond natural language queries, what specific daily tasks for a SOC analyst can the AI assist with? For example, can it automatically summarize alerts, translate query syntaxes from other platforms, or provide threat analysis suggestions during an investigation?
+**Presenter:** [Your Name/Team Name]
+[cite_start]**Date:** August 5, 2025 
 
 ---
-### Part 2: User and Entity Behavior Analytics (UEBA) & Advanced Threat Detection
 
-1.  **Machine Learning Models**: What specific machine learning models does the UEBA use? Can we view, tune, or create custom models?
-2.  **UEBA Architecture**: Is the UEBA functionality natively built into the core engine, or is it an add-on module that requires separate purchase?
-3.  **Attack Chain Correlation**: What is the underlying technology of the "Attack Discovery" feature? How does it automatically correlate multiple low-fidelity alerts into a single, high-fidelity attack incident with context?
-4.  **Specific Threat Detection**: What dedicated detection and response mechanisms are in place for threats like Ransomware and Insider Threats?
-5.  **False Positive Suppression**: Besides basic alert throttling, what advanced suppression methods are available? (e.g., can we create dynamic suppression rules based on a combination of a specific user, on a specific host, performing a specific action?)
-6.  **Tuning Permissions**: Are administrator privileges required to tune alert rules? Or can frontline analysts safely fine-tune or temporarily suppress rules within a controlled framework?
-7.  **AI-Assisted Tuning**: Does the platform use machine learning to help reduce false positives by analyzing analyst interactions and suggesting rule adjustments?
+## Slide 2: Introduction: The Goal
 
----
-### Part 3: Flexibility, Customization & Data Ingestion
-
-1.  **Custom Log Ingestion**: What is the end-to-end process for ingesting and normalizing a custom application log that doesn't have a pre-built template?
-2.  **Automated Ingestion**: Does the platform have an AI-driven feature to automatically generate parsing rules by analyzing log samples?
-3.  **Architecture Openness**: Is the platform's architecture open? Does it provide rich APIs for custom development or integration with our internal systems?
+* [cite_start]**Objective:** To select a SIEM platform that best fits our technical requirements, operational capacity, and budget. 
+* **Key Drivers:**
+    * [cite_start]Enhance threat detection with modern capabilities (AI, UEBA). 
+    * [cite_start]Improve incident response efficiency through automation. 
+    * Ensure scalability and consider the ease of **Implementation and Operation**.
 
 ---
-### Part 4: Security Orchestration, Automation and Response (SOAR)
 
-1.  **SOAR & LLM Integration**: Is LLM integrated into the SOAR platform? In what specific scenarios does it assist analysts (e.g., auto-generating incident summaries, assisting with playbook creation, providing response recommendations)?
-2.  **Ease of Use**: Can analysts without a programming background create or modify automation playbooks using a drag-and-drop interface?
-3.  **ROI Measurement**: How does the platform help us measure the ROI of automation? For instance, can it track improvements in Mean Time to Respond (MTTR) or quantify man-hours saved?
-4.  **Cortex XSOAR Integration**: Do you provide an officially developed and maintained content pack on the Cortex XSOAR Marketplace?
-5.  **Bi-directional Sync**: Is the integration with XSOAR bi-directional? Can playbooks in XSOAR update alert status or assignees back in the SIEM?
-6.  **Incident Enrichment**: Does the integration support automated incident enrichment in XSOAR using data from the SIEM (e.g., asset info, user identity, raw logs)?
-7.  **Incident Mirroring**: Does the integration support full "incident mirroring" to ensure that status, comments, and assignees are kept in sync between the SIEM and XSOAR?
+## Slide 3: Scoring Summary - At a Glance
+
+| Feature | Wazuh | Elastic | Splunk |
+| :--- | :--- | :--- | :--- |
+| AI Assistant (GenAI) | 3 / 5 | 4 / 5 | 5 / 5 |
+| UEBA | 3 / 5 | 4 / 5 | 5 / 5 |
+| Threat Detection | 4 / 5 | 4 / 5 | 5 / 5 |
+| Third-Party Integration | 5 / 5 | 5 / 5 | 5 / 5 |
+| Flexibility | 5 / 5 | 4 / 5 | 3 / 5 |
+| Easy to Implement | 3 / 5 | 3.5 / 5 | 4 / 5 |
+| Easy to Operate | 3 / 5 | 4 / 5 | 3.5 / 5 |
+| Total Cost of Ownership (TCO) | 4 / 5 | 3 / 5 | 1 / 5 |
+| **Overall Score (Example)** | **3.8** | **3.9** | **3.9** |
+[cite_start][cite: 14]
+
+[cite_start]*(Note: Overall score is a simple average for illustrative purposes. We can apply weighting based on our priorities.)* 
+
+---
+
+## Slide 4: Deep Dive: AI Assistant & UEBA
+
+* **AI Assistant (GenAI):**
+    * [cite_start]Splunk & Elastic (5/5, 4/5) are the clear leaders with powerful, native AI assistants. 
+    * [cite_start]Wazuh (2/5) has no native GenAI and relies on community projects. 
+* **UEBA:**
+    * [cite_start]Splunk & Elastic (5/5, 4/5) offer mature, ML-driven UEBA. 
+    * [cite_start]Wazuh (2/5) relies on basic anomaly detection, lacking true user-centric analysis. 
+
+---
+
+## Slide 5: Deep Dive: Third-Party Integration & Flexibility
+
+* **Third-Party Integration:**
+    * [cite_start]All platforms (5/5) are excellent, with vast ecosystems, marketplaces, and community support for connecting with other tools. 
+* **Flexibility & Customization:**
+    * [cite_start]Wazuh (5/5) offers maximum freedom as a fully open-source solution. 
+    * [cite_start]Elastic (4/5) is highly flexible but has some proprietary commercial features. 
+    * [cite_start]Splunk (3/5) is less flexible due to its proprietary nature. 
+
+---
+
+## Slide 6: Deep Dive: Operations & Implementation
+
+* **Ease of Implementation:**
+    * [cite_start]Splunk (4/5) is easiest to start with due to mature SaaS and professional services. 
+    * Elastic (3.5/5) offers flexible deployment (SaaS/on-prem), but can require considerable configuration effort.
+    * [cite_start]Wazuh (3/5) is the most complex, requiring significant time and manpower. 
+* **Ease of Operation:**
+    * [cite_start]Elastic (4/5) has the most analyst-friendly, modern UI. 
+    * [cite_start]Splunk (3.5/5) has a steep learning curve but is efficient once mastered. 
+    * [cite_start]Wazuh (3/5) demands higher technical skills for daily operations. 
+
+---
+
+## Slide 7: Key Findings Summary
+
+* **Wazuh:**
+    * [cite_start]**Pros:** Ultimate flexibility and the lowest TCO. 
+    * [cite_start]**Trade-offs:** Implementation and daily operations require significant in-house technical resources [cite: 33, 37, 40][cite_start]; lacks native advanced features (AI/UEBA). 
+* **Elastic:**
+    * [cite_start]**Pros:** A good balance between modern features, ease of use, and predictable cost [cite: 42][cite_start]; has the most analyst-friendly, modern UI. 
+    * [cite_start]**Trade-offs:** While flexible, some features are proprietary; [cite_start]TCO is higher than Wazuh. 
+* **Splunk:**
+    * [cite_start]**Pros:** Possesses the market's top-tier, most mature features (AI/UEBA) [cite: 44][cite_start]; easiest to get started with due to mature SaaS and professional services. 
+    * [cite_start]**Trade-offs:** Less flexible due to its proprietary nature [cite: 29][cite_start]; significantly the highest TCO. 
+
+---
+
+## Slide 8: Q&A
