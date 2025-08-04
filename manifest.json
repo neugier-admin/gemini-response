@@ -1,10 +1,10 @@
 [
   {
-    "title": "歡迎頁面",
+    "title": "Welcome",
     "file": "content/welcome.md"
   },
     {
-    "title": "features",
+    "title": "Features",
     "file": "content/features.md"
   },
   {
@@ -39,8 +39,12 @@
     "title": "Proxy",
     "file": "content/proxy.md"
   },
-    {
+  {
     "title": "Apache",
     "file": "content/Apache.md"
+  },
+  {
+    "title": "Tmp",
+    "file": "content/tmp.md"
   }
 ]
