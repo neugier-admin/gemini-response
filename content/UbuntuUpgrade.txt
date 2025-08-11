@@ -171,12 +171,12 @@ update_pam_configuration_standard() {
         echo "--> Found legacy PAM modules. Backing up and removing..."
         while IFS= read -r file; do
             if [ -n "$file" ]; then
-                BACKUP_FILE="${file}.bak.$(date +%F-%T)"
+                BACKUP_FILE="${file}.bak"
                 echo "--> Backing up '${file}' to '${BACKUP_FILE}'"
                 cp "${file}" "${BACKUP_FILE}"
                 # Delete any line containing pam_tally.so or pam_tally2.so
                 echo "--> Removing legacy module lines from '${file}'"
-                sed -i.pre-upgrade -E '/pam_tally\.so|pam_tally2\.so/d' "${file}"
+                sed -i -E '/pam_tally\.so|pam_tally2\.so/d' "${file}"
             fi
         done < "${TALLY_FILES}"
         echo "--> Legacy PAM modules removed."
@@ -239,7 +239,7 @@ handle_vim_plugin_cleanup() {
         if grep -q "^\s*Plug '${plugin}'" "${VIMRC_FILE}"; then
             if ! $changes_made; then
                 # Only back up once, on the first change found
-                VIMRC_BACKUP="/root/.vimrc.bak.$(date +%F-%T)"
+                VIMRC_BACKUP="/root/.vimrc.bak"
                 echo "--> Found plugins to clean. Backing up ${VIMRC_FILE} to ${VIMRC_BACKUP}"
                 cp "${VIMRC_FILE}" "${VIMRC_BACKUP}"
                 changes_made=true
@@ -247,7 +247,7 @@ handle_vim_plugin_cleanup() {
             
             echo "--> Commenting out plugin: ${plugin}"
             # Use a different delimiter to avoid issues with slashes in the path
-            sed -i.vim-cleanup "s|^\s*Plug '${plugin}'|\"&|" "${VIMRC_FILE}"
+            sed -i "s|^\s*Plug '${plugin}'|\"&|" "${VIMRC_FILE}"
         else
             echo "--> Plugin '${plugin}' not found or already commented out. Skipping."
         fi
@@ -285,7 +285,7 @@ configure_aide() {
     echo "--> Checking and adding AIDE ignore rules..."
     
     # Create a backup before modifying
-    cp "${AIDE_CONF}" "${AIDE_CONF}.bak.$(date +%F-%T)"
+    cp "${AIDE_CONF}" "${AIDE_CONF}.bak"
 
     # List of rules to add
     RULES_TO_ADD=(
