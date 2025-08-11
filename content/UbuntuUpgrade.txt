@@ -163,8 +163,8 @@ update_pam_configuration_standard() {
     PAM_DIR="/etc/pam.d"
     echo "--> Searching for and removing legacy pam_tally/pam_tally2 modules..."
     TALLY_FILES=$(mktemp)
-    # Find files containing the module names, excluding backups. -l prints filenames only.
-    grep -lrwE --exclude='*.bak' "pam_tally.so|pam_tally2.so" "${PAM_DIR}" > "${TALLY_FILES}" || true
+    # Find files containing the module names. -l prints filenames only.
+    grep -lrwE "pam_tally.so|pam_tally2.so" "${PAM_DIR}" > "${TALLY_FILES}" || true
     if [ ! -s "${TALLY_FILES}" ]; then
         echo "--> No legacy pam_tally modules found. Skipping removal."
     else
