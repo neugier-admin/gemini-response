@@ -163,8 +163,8 @@ update_pam_configuration_standard() {
     PAM_DIR="/etc/pam.d"
     echo "--> Searching for and removing legacy pam_tally/pam_tally2 modules..."
     TALLY_FILES=$(mktemp)
-    # Find files containing the module names. -l prints filenames only.
-    grep -lrwE "pam_tally.so|pam_tally2.so" "${PAM_DIR}" > "${TALLY_FILES}" || true
+    # Find files containing the module names, excluding backups. -l prints filenames only.
+    grep -lrwE --exclude='*.bak' "pam_tally.so|pam_tally2.so" "${PAM_DIR}" > "${TALLY_FILES}" || true
     if [ ! -s "${TALLY_FILES}" ]; then
         echo "--> No legacy pam_tally modules found. Skipping removal."
     else
@@ -172,8 +172,12 @@ update_pam_configuration_standard() {
         while IFS= read -r file; do
             if [ -n "$file" ]; then
                 BACKUP_FILE="${file}.bak"
-                echo "--> Backing up '${file}' to '${BACKUP_FILE}'"
-                cp "${file}" "${BACKUP_FILE}"
+                if [ ! -f "${BACKUP_FILE}" ]; then
+                    echo "--> Backing up '${file}' to '${BACKUP_FILE}'"
+                    cp "${file}" "${BACKUP_FILE}"
+                else
+                    echo "--> Backup file '${BACKUP_FILE}' already exists. Skipping backup."
+                fi
                 # Delete any line containing pam_tally.so or pam_tally2.so
                 echo "--> Removing legacy module lines from '${file}'"
                 sed -i -E '/pam_tally\.so|pam_tally2\.so/d' "${file}"
@@ -210,9 +214,12 @@ EOF
     pam-auth-update --force --enable faillock
     echo "--> pam-auth-update executed."
 
-    # --- Part 4: Clean up old log files ---
+    # --- Part 4: Clean up old log files and backups ---
     echo "--> Removing old tally log files..."
     rm -f /var/log/faillog /var/log/tallylog
+    echo "--> Cleaning up pam-auth-update backup files (*-old)..."
+    rm -f /etc/pam.d/*-old
+    
     echo "--> PAM configuration upgrade complete."
 }
 
@@ -240,8 +247,12 @@ handle_vim_plugin_cleanup() {
             if ! $changes_made; then
                 # Only back up once, on the first change found
                 VIMRC_BACKUP="/root/.vimrc.bak"
-                echo "--> Found plugins to clean. Backing up ${VIMRC_FILE} to ${VIMRC_BACKUP}"
-                cp "${VIMRC_FILE}" "${VIMRC_BACKUP}"
+                if [ ! -f "${VIMRC_BACKUP}" ]; then
+                    echo "--> Found plugins to clean. Backing up ${VIMRC_FILE} to ${VIMRC_BACKUP}"
+                    cp "${VIMRC_FILE}" "${VIMRC_BACKUP}"
+                else
+                    echo "--> Backup file '${VIMRC_BACKUP}' already exists. Skipping backup."
+                fi
                 changes_made=true
             fi
             
@@ -285,7 +296,13 @@ configure_aide() {
     echo "--> Checking and adding AIDE ignore rules..."
     
     # Create a backup before modifying
-    cp "${AIDE_CONF}" "${AIDE_CONF}.bak"
+    AIDE_BACKUP="${AIDE_CONF}.bak"
+    if [ ! -f "${AIDE_BACKUP}" ]; then
+        echo "--> Backing up ${AIDE_CONF} to ${AIDE_BACKUP}"
+        cp "${AIDE_CONF}" "${AIDE_BACKUP}"
+    else
+        echo "--> Backup file '${AIDE_BACKUP}' already exists. Skipping backup."
+    fi
 
     # List of rules to add
     RULES_TO_ADD=(
