@@ -168,16 +168,9 @@ update_pam_configuration_standard() {
     if [ ! -s "${TALLY_FILES}" ]; then
         echo "--> No legacy pam_tally modules found. Skipping removal."
     else
-        echo "--> Found legacy PAM modules. Backing up and removing..."
+        echo "--> Found legacy PAM modules. Removing..."
         while IFS= read -r file; do
             if [ -n "$file" ]; then
-                BACKUP_FILE="${file}.bak"
-                if [ ! -f "${BACKUP_FILE}" ]; then
-                    echo "--> Backing up '${file}' to '${BACKUP_FILE}'"
-                    cp "${file}" "${BACKUP_FILE}"
-                else
-                    echo "--> Backup file '${BACKUP_FILE}' already exists. Skipping backup."
-                fi
                 # Delete any line containing pam_tally.so or pam_tally2.so
                 echo "--> Removing legacy module lines from '${file}'"
                 sed -i -E '/pam_tally\.so|pam_tally2\.so/d' "${file}"
@@ -244,18 +237,7 @@ handle_vim_plugin_cleanup() {
     for plugin in "${PLUGINS_TO_DISABLE[@]}"; do
         # Check if plugin exists and is not already commented out
         if grep -q "^\s*Plug '${plugin}'" "${VIMRC_FILE}"; then
-            if ! $changes_made; then
-                # Only back up once, on the first change found
-                VIMRC_BACKUP="/root/.vimrc.bak"
-                if [ ! -f "${VIMRC_BACKUP}" ]; then
-                    echo "--> Found plugins to clean. Backing up ${VIMRC_FILE} to ${VIMRC_BACKUP}"
-                    cp "${VIMRC_FILE}" "${VIMRC_BACKUP}"
-                else
-                    echo "--> Backup file '${VIMRC_BACKUP}' already exists. Skipping backup."
-                fi
-                changes_made=true
-            fi
-            
+            changes_made=true
             echo "--> Commenting out plugin: ${plugin}"
             # Use a different delimiter to avoid issues with slashes in the path
             sed -i "s|^\s*Plug '${plugin}'|\"&|" "${VIMRC_FILE}"
@@ -294,15 +276,6 @@ configure_aide() {
     fi
 
     echo "--> Checking and adding AIDE ignore rules..."
-    
-    # Create a backup before modifying
-    AIDE_BACKUP="${AIDE_CONF}.bak"
-    if [ ! -f "${AIDE_BACKUP}" ]; then
-        echo "--> Backing up ${AIDE_CONF} to ${AIDE_BACKUP}"
-        cp "${AIDE_CONF}" "${AIDE_BACKUP}"
-    else
-        echo "--> Backup file '${AIDE_BACKUP}' already exists. Skipping backup."
-    fi
 
     # List of rules to add
     RULES_TO_ADD=(
