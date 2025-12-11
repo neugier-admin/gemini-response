@@ -6,7 +6,7 @@
 SERVERS=(
     "192.168.1.101"
     "192.168.1.102"
-    # "192.168.1.103" # You can comment out servers like this
+    # "192.168.1.103"
     "my-web-server.local"
 )
 
@@ -23,12 +23,12 @@ REMOTE_TMP_DIR="/tmp"
 # Remote config destination path (Where to place config after installation)
 REMOTE_CONF_DEST="/etc/your-service/config.conf"
 
-# SSH User (Assuming same user for all servers, recommend root or user with sudo)
+# SSH User
 SSH_USER="root"
 
 # ===============================================================
 
-# Color definitions (For log visibility)
+# Color definitions
 GREEN='\033[0;32m'
 RED='\033[0;31m'
 YELLOW='\033[1;33m'
@@ -45,7 +45,7 @@ for SERVER in "${SERVERS[@]}"; do
 
     echo -e "Processing Server: ${GREEN}$SERVER${NC} ..."
 
-    # 1. Check connection (Timeout 5s to avoid hanging)
+    # 1. Check connection
     ssh -o ConnectTimeout=5 -o BatchMode=yes "$SSH_USER@$SERVER" exit &>/dev/null
     if [ $? -ne 0 ]; then
         echo -e "  [${RED}Connection Failed${NC}] Unable to connect to $SERVER, skipping."
@@ -53,7 +53,6 @@ for SERVER in "${SERVERS[@]}"; do
     fi
 
     # 2. Check if Service exists
-    # Use systemctl list-unit-files to check if service file exists
     if ssh "$SSH_USER@$SERVER" "systemctl list-unit-files | grep -q ^${SERVICE_NAME}.service"; then
         echo -e "  [${YELLOW}Skipped${NC}] Service ($SERVICE_NAME) already exists."
     else
@@ -62,9 +61,7 @@ for SERVER in "${SERVERS[@]}"; do
         # 3. SCP files to remote
         echo "    -> Uploading files..."
         
-        # [UPDATED] Ensure remote directory exists before SCP
-        # scp -r implies recursive copy (for folders), but it does not create the destination parent dir.
-        # We use mkdir -p to ensure the target directory exists.
+        # Ensure remote temp directory exists before SCP
         ssh "$SSH_USER@$SERVER" "mkdir -p $REMOTE_TMP_DIR"
 
         scp "$LOCAL_DEB_FILE" "$LOCAL_CONF_FILE" "$SSH_USER@$SERVER:$REMOTE_TMP_DIR/"
@@ -75,30 +72,33 @@ for SERVER in "${SERVERS[@]}"; do
         fi
 
         # 4. Remote installation and configuration
-        # Get filenames for remote reference
         DEB_FILENAME=$(basename "$LOCAL_DEB_FILE")
         CONF_FILENAME=$(basename "$LOCAL_CONF_FILE")
 
         echo "    -> Executing installation and configuration..."
-        # Combine commands: Install -> Move Config -> Reload -> Start -> Remove package
-        # Note: If not using root login, add sudo before commands like dpkg
+        
+        # [UPDATED ORDER]: Move Config -> Install Package -> Start Service
         ssh "$SSH_USER@$SERVER" "bash -s" <<EOF
-            # Install .deb
-            dpkg -i $REMOTE_TMP_DIR/$DEB_FILENAME
-            
-            # Fix missing dependencies (Optional)
-            # apt-get install -f -y 
-
-            # Move Config file (Ensure target directory exists)
+            # Step A: Move Config file FIRST (Pre-seeding config)
+            # We create the directory first because the package isn't installed yet
+            echo "       Setting up configuration..."
             mkdir -p $(dirname "$REMOTE_CONF_DEST")
             mv $REMOTE_TMP_DIR/$CONF_FILENAME "$REMOTE_CONF_DEST"
 
-            # Reload Daemon and Start Service
+            # Step B: Install .deb Package
+            echo "       Installing package..."
+            dpkg -i $REMOTE_TMP_DIR/$DEB_FILENAME
+            
+            # Fix missing dependencies if needed (Optional)
+            # apt-get install -f -y 
+
+            # Step C: Reload Daemon and Ensure Service is Started
+            echo "       Starting service..."
             systemctl daemon-reload
             systemctl enable $SERVICE_NAME
             systemctl restart $SERVICE_NAME
 
-            # Clean up
+            # Step D: Clean up temp files
             rm -f $REMOTE_TMP_DIR/$DEB_FILENAME
 EOF
 
