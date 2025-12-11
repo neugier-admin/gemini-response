@@ -48,5 +48,10 @@
     "title": "Tmp",
     "file": "content/tmp.md",
     "codeFile": "content/tmp.txt"
+  },
+  {
+    "title": "patch",
+    "file": "content/patch.md",
+    "codeFile": "content/patch.txt"
   }
 ]
